@@ -16,8 +16,7 @@ import {
   TableRow,
   Paper,
   Typography,
-  Tabs,
-  Tab,
+  IconButton,
 } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import BarChartIcon from "@mui/icons-material/BarChart";
@@ -101,18 +100,28 @@ const IranMap = () => {
     );
   }, [selectedProvince]);
 
-  // Chart data for ECharts
+  // Persian labels
+  const persianLabels = {
+    population: "جمعیت",
+    area: "مساحت (کیلومتر مربع)",
+    density: "تراکم جمعیت",
+    gdp: "درصد سهم تولید ناخالص داخلی",
+  };
+
   const pieData = selectedProvinceInfo
     ? [
-        { value: selectedProvinceInfo.population, name: "Population" },
-        { value: selectedProvinceInfo.area_km2, name: "Area (km²)" },
+        {
+          value: selectedProvinceInfo.population,
+          name: persianLabels.population,
+        },
+        { value: selectedProvinceInfo.area_km2, name: persianLabels.area },
         {
           value: selectedProvinceInfo.population_density,
-          name: "Population Density",
+          name: persianLabels.density,
         },
         {
           value: selectedProvinceInfo.gdp_share_percent,
-          name: "GDP Share (%)",
+          name: persianLabels.gdp,
         },
       ]
     : [];
@@ -127,10 +136,10 @@ const IranMap = () => {
     : [];
 
   const barCategories = [
-    "Population",
-    "Area (km²)",
-    "Population Density",
-    "GDP Share (%)",
+    persianLabels.population,
+    persianLabels.area,
+    persianLabels.density,
+    persianLabels.gdp,
   ];
 
   const pieOption = {
@@ -142,10 +151,11 @@ const IranMap = () => {
       orient: "horizontal",
       bottom: 0,
       left: "center",
+      textStyle: { fontFamily: "inherit" },
     },
     series: [
       {
-        name: "Province Data",
+        name: "اطلاعات استان",
         type: "pie",
         radius: "60%",
         data: pieData,
@@ -166,13 +176,19 @@ const IranMap = () => {
       axisPointer: {
         type: "shadow",
       },
+      formatter: function (params) {
+        const p = params[0];
+        return `${p.name}: ${p.value}`;
+      },
     },
     xAxis: {
       type: "category",
       data: barCategories,
+      axisLabel: { fontFamily: "inherit" },
     },
     yAxis: {
       type: "value",
+      axisLabel: { fontFamily: "inherit" },
     },
     series: [
       {
@@ -253,6 +269,13 @@ const IranMap = () => {
         open={isModalOpen}
         onClose={handleCloseModal}
         aria-labelledby="province-modal"
+        aria-describedby="province-modal-description"
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          border: "1px solid lightblue",
+        }}
       >
         <Box
           sx={{
@@ -270,25 +293,37 @@ const IranMap = () => {
             flexDirection: "column",
           }}
         >
-          <Typography
-            variant="h5"
-            component="h2"
-            gutterBottom
-            sx={{ textAlign: "right" }}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+            }}
           >
-            {selectedProvince}
-          </Typography>
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            aria-label="data view tabs"
-            sx={{ mb: 2 }}
-            centered
-          >
-            <Tab icon={<TableChartIcon />} />
-            <Tab icon={<PieChartIcon />} />
-            <Tab icon={<BarChartIcon />} />
-          </Tabs>
+            <Box>
+              <IconButton onClick={() => setTab(0)}>
+                <TableChartIcon color={tab === 0 ? "primary" : "inherit"} />
+              </IconButton>
+              <IconButton onClick={() => setTab(1)}>
+                <PieChartIcon color={tab === 1 ? "primary" : "inherit"} />
+              </IconButton>
+              <IconButton onClick={() => setTab(2)}>
+                <BarChartIcon color={tab === 2 ? "primary" : "inherit"} />
+              </IconButton>
+            </Box>
+            <Typography variant="h5" component="h2" gutterBottom>
+              {selectedProvinceInfo?.name || "استانی انتخاب نشده است"}
+            </Typography>
+            <Typography
+              variant="h5"
+              component="h2"
+              gutterBottom
+              visibility={"hidden"}
+            >
+              {selectedProvinceInfo?.name || "استانی انتخاب نشده است"}
+            </Typography>
+          </Box>
           <Box
             sx={{
               flex: 1,
@@ -304,33 +339,57 @@ const IranMap = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Metric</TableCell>
-                      <TableCell align="right">Value</TableCell>
+                      <TableCell
+                        sx={{ fontWeight: "bold", textAlign: "right" }}
+                      >
+                        شاخص
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ fontWeight: "bold", textAlign: "right" }}
+                      >
+                        مقدار
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Population</TableCell>
-                      <TableCell align="right">
-                        {selectedProvinceInfo.population.toLocaleString()}
+                      <TableCell sx={{ textAlign: "right" }}>
+                        {persianLabels.population}
+                      </TableCell>
+                      <TableCell align="right" sx={{ textAlign: "right" }}>
+                        {selectedProvinceInfo.population.toLocaleString(
+                          "fa-IR"
+                        )}
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Area (km²)</TableCell>
-                      <TableCell align="right">
-                        {selectedProvinceInfo.area_km2.toLocaleString()}
+                      <TableCell sx={{ textAlign: "right" }}>
+                        {persianLabels.area}
+                      </TableCell>
+                      <TableCell align="right" sx={{ textAlign: "right" }}>
+                        {selectedProvinceInfo.area_km2.toLocaleString("fa-IR")}
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Population Density</TableCell>
-                      <TableCell align="right">
-                        {selectedProvinceInfo.population_density.toLocaleString()}
+                      <TableCell sx={{ textAlign: "right" }}>
+                        {persianLabels.density}
+                      </TableCell>
+                      <TableCell align="right" sx={{ textAlign: "right" }}>
+                        {selectedProvinceInfo.population_density.toLocaleString(
+                          "fa-IR"
+                        )}
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>GDP Share (%)</TableCell>
-                      <TableCell align="right">
-                        {selectedProvinceInfo.gdp_share_percent}%
+                      <TableCell sx={{ textAlign: "right" }}>
+                        {persianLabels.gdp}
+                      </TableCell>
+                      <TableCell align="right" sx={{ textAlign: "right" }}>
+                        {selectedProvinceInfo.gdp_share_percent.toLocaleString(
+                          "fa-IR"
+                        )}
+                        ٪
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -340,13 +399,13 @@ const IranMap = () => {
             {tab === 1 && selectedProvinceInfo && (
               <ReactECharts
                 option={pieOption}
-                style={{ height: 350, width: 500 }}
+                style={{ height: "100%", width: 500 }}
               />
             )}
             {tab === 2 && selectedProvinceInfo && (
               <ReactECharts
                 option={barOption}
-                style={{ height: 350, width: 500 }}
+                style={{ height: "100%", width: 500 }}
               />
             )}
           </Box>
@@ -361,6 +420,7 @@ export default IranMap;
 const ProvinceInformation = [
   {
     province: "Tehran",
+    name: "تهران",
     population: 14425000,
     area_km2: 12981,
     population_density: 1111,
@@ -368,6 +428,7 @@ const ProvinceInformation = [
   },
   {
     province: "Razavi Khorasan",
+    name: "رضوی خراسان",
     population: 7109000,
     area_km2: 118851,
     population_density: 60,
@@ -375,6 +436,7 @@ const ProvinceInformation = [
   },
   {
     province: "Isfahan",
+    name: "اصفهان",
     population: 5429000,
     area_km2: 107027,
     population_density: 51,
@@ -382,6 +444,7 @@ const ProvinceInformation = [
   },
   {
     province: "Fars",
+    name: "فارس",
     population: 5136000,
     area_km2: 122608,
     population_density: 42,
@@ -389,6 +452,7 @@ const ProvinceInformation = [
   },
   {
     province: "Khuzestan",
+    name: "خوزستان",
     population: 5115000,
     area_km2: 64555,
     population_density: 79,
@@ -396,6 +460,7 @@ const ProvinceInformation = [
   },
   {
     province: "East Azerbaijan",
+    name: "آذربایجان شرقی",
     population: 4092000,
     area_km2: 45490,
     population_density: 90,
@@ -403,6 +468,7 @@ const ProvinceInformation = [
   },
   {
     province: "Mazandaran",
+    name: "مازندران",
     population: 3415000,
     area_km2: 23756,
     population_density: 144,
@@ -410,6 +476,7 @@ const ProvinceInformation = [
   },
   {
     province: "Kerman",
+    name: "کرمان",
     population: 3413000,
     area_km2: 183285,
     population_density: 19,
@@ -417,6 +484,7 @@ const ProvinceInformation = [
   },
   {
     province: "West Azerbaijan",
+    name: "آذربایجان غربی",
     population: 3529000,
     area_km2: 37411,
     population_density: 94,
@@ -424,6 +492,7 @@ const ProvinceInformation = [
   },
   {
     province: "Gilan",
+    name: "گیلان",
     population: 2569000,
     area_km2: 14042,
     population_density: 183,
@@ -431,6 +500,7 @@ const ProvinceInformation = [
   },
   {
     province: "Alborz",
+    name: "البرز",
     population: 3028000,
     area_km2: 5833,
     population_density: 519,
@@ -438,6 +508,7 @@ const ProvinceInformation = [
   },
   {
     province: "Sistan va Baluchestan",
+    name: "سیستان و بلوچستان",
     population: 3280000,
     area_km2: 181785,
     population_density: 18,
@@ -445,6 +516,7 @@ const ProvinceInformation = [
   },
   {
     province: "Hormozgan",
+    name: "هرمزگان",
     population: 2018000,
     area_km2: 70697,
     population_density: 29,
@@ -452,6 +524,7 @@ const ProvinceInformation = [
   },
   {
     province: "Lorestan",
+    name: "لرستان",
     population: 1792000,
     area_km2: 28494,
     population_density: 63,
@@ -459,6 +532,7 @@ const ProvinceInformation = [
   },
   {
     province: "Kermanshah",
+    name: "کرمانشاه",
     population: 1999000,
     area_km2: 24998,
     population_density: 80,
@@ -466,6 +540,7 @@ const ProvinceInformation = [
   },
   {
     province: "Golestan",
+    name: "گلستان",
     population: 2016000,
     area_km2: 20380,
     population_density: 99,
@@ -473,6 +548,7 @@ const ProvinceInformation = [
   },
   {
     province: "Hamedan",
+    name: "همدان",
     population: 1769000,
     area_km2: 19493,
     population_density: 91,
@@ -480,6 +556,7 @@ const ProvinceInformation = [
   },
   {
     province: "Qom",
+    name: "قم",
     population: 1454000,
     area_km2: 11238,
     population_density: 129,
@@ -487,6 +564,7 @@ const ProvinceInformation = [
   },
   {
     province: "Kurdistan",
+    name: "کردستان",
     population: 1689000,
     area_km2: 29137,
     population_density: 58,
@@ -494,6 +572,7 @@ const ProvinceInformation = [
   },
   {
     province: "Ardabil",
+    name: "اردبیل",
     population: 1299000,
     area_km2: 17800,
     population_density: 73,
@@ -501,6 +580,7 @@ const ProvinceInformation = [
   },
   {
     province: "Qazvin",
+    name: "قزوین",
     population: 1346000,
     area_km2: 15821,
     population_density: 85,
@@ -508,6 +588,7 @@ const ProvinceInformation = [
   },
   {
     province: "Zanjan",
+    name: "زنجان",
     population: 1119000,
     area_km2: 22164,
     population_density: 50,
@@ -515,6 +596,7 @@ const ProvinceInformation = [
   },
   {
     province: "Markazi",
+    name: "مرکزی",
     population: 1472000,
     area_km2: 29127,
     population_density: 51,
@@ -522,6 +604,7 @@ const ProvinceInformation = [
   },
   {
     province: "Yazd",
+    name: "یزد",
     population: 1074000,
     area_km2: 131575,
     population_density: 8,
@@ -529,6 +612,7 @@ const ProvinceInformation = [
   },
   {
     province: "Bushehr",
+    name: "بوشهر",
     population: 1277000,
     area_km2: 22743,
     population_density: 56,
@@ -536,6 +620,7 @@ const ProvinceInformation = [
   },
   {
     province: "North Khorasan",
+    name: "شمال خراسان",
     population: 875000,
     area_km2: 28434,
     population_density: 31,
@@ -543,6 +628,7 @@ const ProvinceInformation = [
   },
   {
     province: "South Khorasan",
+    name: "جنوب خراسان",
     population: 845000,
     area_km2: 151913,
     population_density: 6,
@@ -550,6 +636,7 @@ const ProvinceInformation = [
   },
   {
     province: "Chaharmahal and Bakhtiari",
+    name: "چهارمحال و بختیاری",
     population: 997000,
     area_km2: 16332,
     population_density: 61,
@@ -557,6 +644,7 @@ const ProvinceInformation = [
   },
   {
     province: "Kohgiluyeh and Boyer-Ahmad",
+    name: "کهگیلویه و بویراحمد",
     population: 759000,
     area_km2: 15504,
     population_density: 49,
@@ -564,6 +652,7 @@ const ProvinceInformation = [
   },
   {
     province: "Ilam",
+    name: "ایلام",
     population: 597000,
     area_km2: 19086,
     population_density: 31,
@@ -571,6 +660,7 @@ const ProvinceInformation = [
   },
   {
     province: "Semnan",
+    name: "سمنان",
     population: 787000,
     area_km2: 97491,
     population_density: 8,
