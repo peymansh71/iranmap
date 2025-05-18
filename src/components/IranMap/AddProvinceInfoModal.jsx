@@ -45,6 +45,7 @@ const AddProvinceInfoModal = ({
         options={provinceList}
         value={selectedProvince}
         onChange={(_, newValue) => setSelectedProvince(newValue)}
+        getOptionLabel={(option) => option.name_fa}
         renderInput={(params) => (
           <TextField {...params} label="انتخاب استان" variant="outlined" />
         )}

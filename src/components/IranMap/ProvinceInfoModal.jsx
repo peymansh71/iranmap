@@ -1,22 +1,11 @@
 import React from "react";
-import {
-  Modal,
-  Box,
-  Typography,
-  IconButton,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-} from "@mui/material";
+import { Modal, Box, Typography, IconButton, Divider } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PieChartIcon from "@mui/icons-material/PieChart";
-import ReactECharts from "echarts-for-react";
+import ProvinceTable from "./components/ProvinceTable";
+import ProvincePieChart from "./components/ProvincePieChart";
+import ProvinceBarChart from "./components/ProvinceBarChart";
 
 const ProvinceInfoModal = ({
   open,
@@ -25,147 +14,110 @@ const ProvinceInfoModal = ({
   tab,
   setTab,
   persianLabels,
-  pieOption,
-  barOption,
-}) => (
-  <Modal
-    open={open}
-    onClose={onClose}
-    aria-labelledby="province-modal"
-    aria-describedby="province-modal-description"
-    sx={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      border: "1px solid lightblue",
-    }}
-  >
-    <Box
+}) => {
+  const hasData = provinceInfo?.fields?.length > 0;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="province-modal"
+      aria-describedby="province-modal-description"
       sx={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: 600,
-        height: 600,
-        bgcolor: "background.paper",
-        boxShadow: 24,
-        p: 4,
-        borderRadius: 2,
         display: "flex",
-        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        border: "1px solid lightblue",
       }}
     >
       <Box
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
-        <Box>
-          <IconButton onClick={() => setTab(0)}>
-            <TableChartIcon color={tab === 0 ? "primary" : "inherit"} />
-          </IconButton>
-          <IconButton onClick={() => setTab(1)}>
-            <PieChartIcon color={tab === 1 ? "primary" : "inherit"} />
-          </IconButton>
-          <IconButton onClick={() => setTab(2)}>
-            <BarChartIcon color={tab === 2 ? "primary" : "inherit"} />
-          </IconButton>
-        </Box>
-        <Typography variant="h5" component="h2" gutterBottom>
-          {provinceInfo?.name || "استانی انتخاب نشده است"}
-        </Typography>
-        <Typography
-          variant="h5"
-          component="h2"
-          gutterBottom
-          visibility={"hidden"}
-        >
-          {provinceInfo?.name || "استانی انتخاب نشده است"}
-        </Typography>
-      </Box>
-      <Divider />
-      <Box
-        sx={{
-          flex: 1,
-          overflow: "auto",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 600,
+          height: 600,
+          bgcolor: "background.paper",
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
         }}
       >
-        {tab === 0 && provinceInfo && (
-          <TableContainer component={Paper} sx={{ maxWidth: 500 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "right" }}>
-                    شاخص
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: "bold", textAlign: "right" }}
-                  >
-                    مقدار
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow>
-                  <TableCell sx={{ textAlign: "right" }}>
-                    {persianLabels.population}
-                  </TableCell>
-                  <TableCell align="right" sx={{ textAlign: "right" }}>
-                    {provinceInfo.population?.toLocaleString("fa-IR")}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ textAlign: "right" }}>
-                    {persianLabels.area}
-                  </TableCell>
-                  <TableCell align="right" sx={{ textAlign: "right" }}>
-                    {provinceInfo.area_km2?.toLocaleString("fa-IR")}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ textAlign: "right" }}>
-                    {persianLabels.density}
-                  </TableCell>
-                  <TableCell align="right" sx={{ textAlign: "right" }}>
-                    {provinceInfo.population_density?.toLocaleString("fa-IR")}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ textAlign: "right" }}>
-                    {persianLabels.gdp}
-                  </TableCell>
-                  <TableCell align="right" sx={{ textAlign: "right" }}>
-                    {provinceInfo.gdp_share_percent?.toLocaleString("fa-IR")}٪
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-        {tab === 1 && provinceInfo && (
-          <ReactECharts
-            option={pieOption}
-            style={{ height: "100%", width: 500 }}
-          />
-        )}
-        {tab === 2 && provinceInfo && (
-          <ReactECharts
-            option={barOption}
-            style={{ height: "100%", width: 500 }}
-          />
-        )}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <Box>
+            <IconButton onClick={() => setTab(0)}>
+              <TableChartIcon color={tab === 0 ? "primary" : "inherit"} />
+            </IconButton>
+            <IconButton onClick={() => setTab(1)}>
+              <PieChartIcon color={tab === 1 ? "primary" : "inherit"} />
+            </IconButton>
+            <IconButton onClick={() => setTab(2)}>
+              <BarChartIcon color={tab === 2 ? "primary" : "inherit"} />
+            </IconButton>
+          </Box>
+          <Typography variant="h5" component="h2" gutterBottom>
+            {provinceInfo?.province?.name_fa || "استانی انتخاب نشده است"}
+          </Typography>
+          <Typography
+            variant="h5"
+            component="h2"
+            gutterBottom
+            visibility={"hidden"}
+          >
+            {provinceInfo?.province?.name_fa || "استانی انتخاب نشده است"}
+          </Typography>
+        </Box>
+        <Divider />
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {!hasData ? (
+            <Typography variant="h6" color="text.secondary" align="center">
+              اطلاعاتی برای این استان ثبت نشده است
+            </Typography>
+          ) : (
+            <>
+              {tab === 0 && (
+                <ProvinceTable
+                  provinceInfo={provinceInfo}
+                  persianLabels={persianLabels}
+                />
+              )}
+              {tab === 1 && (
+                <ProvincePieChart
+                  provinceInfo={provinceInfo}
+                  persianLabels={persianLabels}
+                />
+              )}
+              {tab === 2 && (
+                <ProvinceBarChart
+                  provinceInfo={provinceInfo}
+                  persianLabels={persianLabels}
+                />
+              )}
+            </>
+          )}
+        </Box>
       </Box>
-    </Box>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export default ProvinceInfoModal;
