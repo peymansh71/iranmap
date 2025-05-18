@@ -28,6 +28,7 @@ import ReactECharts from "echarts-for-react";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import SettingsIcon from "@mui/icons-material/Settings";
+import useIndexesStore from "../store/indexesStore";
 
 // List of 32 provinces in Persian
 const provinceList = [
@@ -75,12 +76,9 @@ const IranMap = () => {
   const [selectedAddProvince, setSelectedAddProvince] = useState(null);
   const [fields, setFields] = useState([{ label: "", value: "" }]);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [availableIndexes, setAvailableIndexes] = useState([
-    "جمعیت",
-    "مساحت (کیلومتر مربع)",
-    "تراکم جمعیت",
-    "درصد سهم تولید ناخالص داخلی",
-  ]);
+  const indexes = useIndexesStore((state) => state.indexes);
+  const addIndex = useIndexesStore((state) => state.addIndex);
+  const removeIndex = useIndexesStore((state) => state.removeIndex);
   const [newIndex, setNewIndex] = useState("");
 
   // Reset fields when modal opens/closes or province changes
@@ -102,9 +100,7 @@ const IranMap = () => {
   };
 
   const handleRemoveField = (idx) => {
-    setFields((fields) =>
-      fields.length === 1 ? fields : fields.filter((_, i) => i !== idx)
-    );
+    setFields((fields) => fields.filter((_, i) => i !== idx));
   };
 
   const handleLogout = () => {
@@ -288,13 +284,13 @@ const IranMap = () => {
   document.head.appendChild(styleSheet);
 
   const handleAddIndex = () => {
-    if (newIndex.trim() && !availableIndexes.includes(newIndex.trim())) {
-      setAvailableIndexes([...availableIndexes, newIndex.trim()]);
+    if (newIndex.trim() && !indexes.includes(newIndex.trim())) {
+      addIndex(newIndex.trim());
       setNewIndex("");
     }
   };
   const handleRemoveIndex = (idx) => {
-    setAvailableIndexes(availableIndexes.filter((_, i) => i !== idx));
+    removeIndex(indexes[idx]);
   };
 
   return (
@@ -533,7 +529,7 @@ const IranMap = () => {
             bgcolor: "background.paper",
             p: 4,
             borderRadius: 2,
-            minWidth: 500,
+            minWidth: 600,
             maxWidth: 800,
           }}
         >
@@ -557,12 +553,15 @@ const IranMap = () => {
                   key={idx}
                   sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
                 >
-                  <TextField
-                    label="شاخص"
+                  <Autocomplete
+                    options={indexes}
                     value={field.label}
-                    onChange={(e) =>
-                      handleFieldChange(idx, "label", e.target.value)
+                    onChange={(_, newValue) =>
+                      handleFieldChange(idx, "label", newValue || "")
                     }
+                    renderInput={(params) => (
+                      <TextField {...params} label="شاخص" variant="outlined" />
+                    )}
                     sx={{ flex: 2 }}
                   />
                   <TextField
@@ -576,7 +575,6 @@ const IranMap = () => {
                   />
                   <IconButton
                     onClick={() => handleRemoveField(idx)}
-                    disabled={fields.length === 1}
                     color="error"
                   >
                     <DeleteIcon />
@@ -619,7 +617,7 @@ const IranMap = () => {
           <Typography variant="h6" sx={{ mb: 2, textAlign: "center" }}>
             مدیریت شاخص‌ها
           </Typography>
-          {availableIndexes.map((idx, i) => (
+          {indexes.map((idx, i) => (
             <Box
               key={i}
               sx={{
@@ -633,11 +631,7 @@ const IranMap = () => {
                 disabled
                 sx={{ flex: 1, backgroundColor: "#f0f0f0" }}
               />
-              <IconButton
-                onClick={() => handleRemoveIndex(i)}
-                color="error"
-                disabled={availableIndexes.length === 1}
-              >
+              <IconButton onClick={() => handleRemoveIndex(i)} color="error">
                 <DeleteIcon />
               </IconButton>
             </Box>
