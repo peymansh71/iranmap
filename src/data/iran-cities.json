@@ -1,0 +1,32 @@
+[
+  {
+    "city": "Tehran",
+    "province": "Tehran",
+    "lat": 35.6892,
+    "lng": 51.389
+  },
+  {
+    "city": "Mashhad",
+    "province": "Razavi Khorasan",
+    "lat": 36.2605,
+    "lng": 59.6168
+  },
+  {
+    "city": "Isfahan",
+    "province": "Isfahan",
+    "lat": 32.6546,
+    "lng": 51.668
+  },
+  {
+    "city": "Shiraz",
+    "province": "Fars",
+    "lat": 29.5917,
+    "lng": 52.5836
+  },
+  {
+    "city": "Tabriz",
+    "province": "East Azerbaijan",
+    "lat": 38.0962,
+    "lng": 46.2738
+  }
+]
