@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { provincesAPI } from "../services/api";
 
 // List of all provinces
 const allProvinces = [
@@ -95,21 +96,54 @@ const migrateProvinceData = (existingData) => {
 const useProvinceInfoStore = create(
   persist(
     (set, get) => ({
-      provinceInfoList: initialProvinceInfo,
-      addProvinceInfo: (province, fields) =>
-        set((state) => ({
-          provinceInfoList: state.provinceInfoList.map((info) =>
-            info.province.id === province.id ? { ...info, fields } : info
-          ),
-        })),
-      getProvinceInfoByName: (provinceId) => {
-        const state = get();
-        return state.provinceInfoList.find(
-          (info) => info.province.id === provinceId
-        );
+      provinceInfoList: [],
+      isLoading: false,
+      error: null,
+
+      fetchProvinces: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const provinces = await provincesAPI.getAll();
+          set({ provinceInfoList: provinces, isLoading: false });
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || "Failed to fetch provinces",
+            isLoading: false,
+          });
+        }
       },
-      // Add a function to reset the store to initial state
-      resetStore: () => set({ provinceInfoList: initialProvinceInfo }),
+
+      addProvinceInfo: async (province, fields) => {
+        try {
+          set({ isLoading: true, error: null });
+          const updatedProvince = await provincesAPI.createOrUpdate({
+            id: province.id,
+            name_fa: province.name_fa,
+            name_en: province.name_en,
+            fields,
+          });
+
+          set((state) => ({
+            provinceInfoList: state.provinceInfoList.map((p) =>
+              p.id === province.id ? updatedProvince : p
+            ),
+            isLoading: false,
+          }));
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || "Failed to update province",
+            isLoading: false,
+          });
+        }
+      },
+
+      getProvinceInfoByName: (name) => {
+        return get().provinceInfoList.find((p) => p.name_en === name);
+      },
+
+      resetStore: () => {
+        set({ provinceInfoList: [], error: null });
+      },
     }),
     {
       name: "province-info-storage",

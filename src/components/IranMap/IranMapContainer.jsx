@@ -172,6 +172,17 @@ const IranMapContainer = () => {
     resetStore();
   }, [resetStore]);
 
+  // Fetch data on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([
+        useProvinceInfoStore.getState().fetchProvinces(),
+        useIndexesStore.getState().fetchIndexes(),
+      ]);
+    };
+    fetchData();
+  }, []);
+
   return (
     <Box sx={{ position: "relative", height: "100vh", width: "100vw" }}>
       <MapContainer
