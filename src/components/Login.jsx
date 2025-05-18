@@ -191,7 +191,7 @@ const Login = () => {
               style={{
                 position: "absolute",
                 left: "10px",
-                top: "40%",
+                top: "calc(100% - 40px)",
                 transform: "translateY(-50%)",
                 color: "#64748b",
                 fontSize: "1.2rem",

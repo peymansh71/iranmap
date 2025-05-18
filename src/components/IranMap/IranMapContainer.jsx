@@ -5,13 +5,15 @@ import iranProvinces from "./iranProvinces.json";
 import iranMask from "./iranMask.json"; // The inverse mask layer
 import useAuthStore from "../../store/authStore";
 import { useNavigate } from "react-router-dom";
-import { IconButton, Button } from "@mui/material";
+import { IconButton, Box, Tooltip } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
 import useProvinceInfoStore from "../../store/provinceInfoStore";
 import ProvinceInfoModal from "./ProvinceInfoModal";
 import AddProvinceInfoModal from "./AddProvinceInfoModal";
 import ManageIndexesModal from "./ManageIndexesModal";
+import AddIcon from "@mui/icons-material/Add";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 const IranMapContainer = () => {
   const [selectedProvince, setSelectedProvince] = useState(null);
@@ -139,7 +141,9 @@ const IranMapContainer = () => {
     population: "جمعیت",
     area: "مساحت (کیلومتر مربع)",
     density: "تراکم جمعیت",
-    gdp: "درصد سهم تولید ناخالص داخلی",
+    manageIndexes: "مدیریت اندیس‌ها",
+    addProvinceInfo: "افزودن اطلاعات استان",
+    logout: "خروج",
   };
 
   const styleSheet = document.createElement("style");
@@ -169,48 +173,7 @@ const IranMapContainer = () => {
   }, [resetStore]);
 
   return (
-    <div style={{ position: "relative", height: "100vh", width: "100%" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          zIndex: 1000,
-          display: "flex",
-          gap: "10px",
-        }}
-      >
-        <IconButton
-          onClick={() => setSettingsOpen(true)}
-          color="primary"
-          sx={{ background: "#fff", border: "1px solid #1976d2" }}
-        >
-          <SettingsIcon />
-        </IconButton>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setAddModalOpen(true)}
-          sx={{ fontWeight: "bold", background: "#1976d2" }}
-        >
-          افزودن اطلاعات
-        </Button>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#e74c3c",
-            color: "white",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-            boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-          }}
-        >
-          خروج
-        </button>
-      </div>
-
+    <Box sx={{ position: "relative", height: "100vh", width: "100vw" }}>
       <MapContainer
         center={[32.0, 53.0]}
         zoom={6}
@@ -240,6 +203,53 @@ const IranMapContainer = () => {
           style={style}
         />
       </MapContainer>
+
+      <Box
+        sx={{
+          position: "absolute",
+          top: 16,
+          right: 16,
+          display: "flex",
+          gap: 1,
+          zIndex: 1000,
+        }}
+      >
+        <Tooltip title={persianLabels.manageIndexes}>
+          <IconButton
+            onClick={() => setSettingsOpen(true)}
+            sx={{
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "gray", color: "white" },
+            }}
+          >
+            <SettingsIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={persianLabels.addProvinceInfo}>
+          <IconButton
+            onClick={() => setAddModalOpen(true)}
+            sx={{
+              bgcolor: "primary.main",
+              color: "white",
+              "&:hover": { bgcolor: "white", color: "primary.main" },
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={persianLabels.logout}>
+          <IconButton
+            onClick={handleLogout}
+            sx={{
+              bgcolor: "error.main",
+              color: "white",
+              "&:hover": { bgcolor: "white", color: "error.main" },
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       <ProvinceInfoModal
         open={isModalOpen}
@@ -273,7 +283,7 @@ const IranMapContainer = () => {
         onAddIndex={handleAddIndex}
         onRemoveIndex={handleRemoveIndex}
       />
-    </div>
+    </Box>
   );
 };
 

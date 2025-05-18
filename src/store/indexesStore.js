@@ -4,12 +4,7 @@ import { persist } from "zustand/middleware";
 const useIndexesStore = create(
   persist(
     (set) => ({
-      indexes: [
-        "جمعیت",
-        "مساحت (کیلومتر مربع)",
-        "تراکم جمعیت",
-        "درصد سهم تولید ناخالص داخلی",
-      ],
+      indexes: [],
       addIndex: (index) =>
         set((state) => ({
           indexes: state.indexes.includes(index)

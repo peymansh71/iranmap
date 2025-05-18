@@ -5,10 +5,10 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import IranMap from "./components/IranMap/IranMapContainer";
+import IranMapContainer from "./components/IranMap/IranMapContainer";
 import Login from "./components/Login/Login";
 import useAuthStore from "./store/authStore";
-import "./index.css";
+import "./styles/global.css";
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -25,7 +25,7 @@ const App = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <IranMap />
+                <IranMapContainer />
               </ProtectedRoute>
             }
           />

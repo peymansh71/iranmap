@@ -17,6 +17,8 @@ const ProvinceInfoModal = ({
 }) => {
   const hasData = provinceInfo?.fields?.length > 0;
 
+  console.log(provinceInfo);
+
   return (
     <Modal
       open={open}
