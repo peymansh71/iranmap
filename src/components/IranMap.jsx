@@ -16,18 +16,18 @@ import {
   TableRow,
   Paper,
   Typography,
+  Tabs,
+  Tab,
 } from "@mui/material";
-
-const populationData = {
-  Tehran: 13900000,
-  Isfahan: 5120000,
-  "Khorasan Razavi": 6430000,
-  // Add more provinces as needed
-};
+import TableChartIcon from "@mui/icons-material/TableChart";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import PieChartIcon from "@mui/icons-material/PieChart";
+import ReactECharts from "echarts-for-react";
 
 const IranMap = () => {
   const [selectedProvince, setSelectedProvince] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tab, setTab] = useState(0);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
@@ -100,6 +100,90 @@ const IranMap = () => {
       (info) => info.province === selectedProvince
     );
   }, [selectedProvince]);
+
+  // Chart data for ECharts
+  const pieData = selectedProvinceInfo
+    ? [
+        { value: selectedProvinceInfo.population, name: "Population" },
+        { value: selectedProvinceInfo.area_km2, name: "Area (km²)" },
+        {
+          value: selectedProvinceInfo.population_density,
+          name: "Population Density",
+        },
+        {
+          value: selectedProvinceInfo.gdp_share_percent,
+          name: "GDP Share (%)",
+        },
+      ]
+    : [];
+
+  const barData = selectedProvinceInfo
+    ? [
+        selectedProvinceInfo.population,
+        selectedProvinceInfo.area_km2,
+        selectedProvinceInfo.population_density,
+        selectedProvinceInfo.gdp_share_percent,
+      ]
+    : [];
+
+  const barCategories = [
+    "Population",
+    "Area (km²)",
+    "Population Density",
+    "GDP Share (%)",
+  ];
+
+  const pieOption = {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c}",
+    },
+    legend: {
+      orient: "horizontal",
+      bottom: 0,
+      left: "center",
+    },
+    series: [
+      {
+        name: "Province Data",
+        type: "pie",
+        radius: "60%",
+        data: pieData,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: "rgba(0, 0, 0, 0.5)",
+          },
+        },
+      },
+    ],
+  };
+
+  const barOption = {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        type: "shadow",
+      },
+    },
+    xAxis: {
+      type: "category",
+      data: barCategories,
+    },
+    yAxis: {
+      type: "value",
+    },
+    series: [
+      {
+        data: barData,
+        type: "bar",
+        itemStyle: {
+          color: "#1976d2",
+        },
+      },
+    ],
+  };
 
   const styleSheet = document.createElement("style");
   styleSheet.innerText = `.leaflet-interactive:focus { outline: none !important; }`;
@@ -177,53 +261,95 @@ const IranMap = () => {
             left: "50%",
             transform: "translate(-50%, -50%)",
             width: 600,
+            height: 600,
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,
             borderRadius: 2,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Typography variant="h5" component="h2" gutterBottom>
-            {selectedProvince} Information
+          <Typography
+            variant="h5"
+            component="h2"
+            gutterBottom
+            sx={{ textAlign: "right" }}
+          >
+            {selectedProvince}
           </Typography>
-          {selectedProvinceInfo && (
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Metric</TableCell>
-                    <TableCell align="right">Value</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Population</TableCell>
-                    <TableCell align="right">
-                      {selectedProvinceInfo.population.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Area (km²)</TableCell>
-                    <TableCell align="right">
-                      {selectedProvinceInfo.area_km2.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Population Density</TableCell>
-                    <TableCell align="right">
-                      {selectedProvinceInfo.population_density.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>GDP Share (%)</TableCell>
-                    <TableCell align="right">
-                      {selectedProvinceInfo.gdp_share_percent}%
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            aria-label="data view tabs"
+            sx={{ mb: 2 }}
+            centered
+          >
+            <Tab icon={<TableChartIcon />} />
+            <Tab icon={<PieChartIcon />} />
+            <Tab icon={<BarChartIcon />} />
+          </Tabs>
+          <Box
+            sx={{
+              flex: 1,
+              overflow: "auto",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {tab === 0 && selectedProvinceInfo && (
+              <TableContainer component={Paper} sx={{ maxWidth: 500 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Metric</TableCell>
+                      <TableCell align="right">Value</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Population</TableCell>
+                      <TableCell align="right">
+                        {selectedProvinceInfo.population.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Area (km²)</TableCell>
+                      <TableCell align="right">
+                        {selectedProvinceInfo.area_km2.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Population Density</TableCell>
+                      <TableCell align="right">
+                        {selectedProvinceInfo.population_density.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>GDP Share (%)</TableCell>
+                      <TableCell align="right">
+                        {selectedProvinceInfo.gdp_share_percent}%
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            {tab === 1 && selectedProvinceInfo && (
+              <ReactECharts
+                option={pieOption}
+                style={{ height: 350, width: 500 }}
+              />
+            )}
+            {tab === 2 && selectedProvinceInfo && (
+              <ReactECharts
+                option={barOption}
+                style={{ height: 350, width: 500 }}
+              />
+            )}
+          </Box>
         </Box>
       </Modal>
     </div>
