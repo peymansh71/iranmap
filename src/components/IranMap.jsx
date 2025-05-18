@@ -1,8 +1,8 @@
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import React, { useState, useCallback, useMemo } from "react";
-import iranProvinces from "./iranProvinces.json";
-import iranMask from "./iranMask.json"; // The inverse mask layer
+import iranProvinces from "./IranMap/iranProvinces.json";
+import iranMask from "./IranMap/iranMask.json"; // The inverse mask layer
 import useAuthStore from "../store/authStore";
 import { useNavigate } from "react-router-dom";
 import {
@@ -33,38 +33,40 @@ import useProvinceInfoStore from "../store/provinceInfoStore";
 
 // List of 32 provinces in Persian
 const provinceList = [
-  "آذربایجان شرقی",
-  "آذربایجان غربی",
-  "اردبیل",
-  "اصفهان",
-  "البرز",
-  "ایلام",
-  "بوشهر",
-  "تهران",
-  "چهارمحال و بختیاری",
-  "خراسان جنوبی",
-  "خراسان رضوی",
-  "خراسان شمالی",
-  "خوزستان",
-  "زنجان",
-  "سمنان",
-  "سیستان و بلوچستان",
-  "فارس",
-  "قزوین",
-  "قم",
-  "کردستان",
-  "کرمان",
-  "کرمانشاه",
-  "کهگیلویه و بویراحمد",
-  "گلستان",
-  "گیلان",
-  "لرستان",
-  "مازندران",
-  "مرکزی",
-  "هرمزگان",
-  "همدان",
-  "یزد",
-  "خراسان رضوی",
+  { id: "Khorasan Jonubi", name: "خراسان جنوبی" },
+  { id: "Khorasan Razavi", name: "خراسان رضوی" },
+  { id: "Khorasan Shomali", name: "خراسان شمالی" },
+  { id: "Azarbayjan Sharghi", name: "آذربایجان شرقی" },
+  { id: "Azarbayjan Gharbi", name: "آذربایجان غربی" },
+  { id: "Ardabil", name: "اردبیل" },
+  { id: "Isfahan", name: "اصفهان" },
+  { id: "Alborz", name: "البرز" },
+  { id: "Ilam", name: "ایلام" },
+  { id: "Bushehr", name: "بوشهر" },
+  { id: "Tehran", name: "تهران" },
+  { id: "Chahar Mahal va Bakhtiari", name: "چهارمحال و بختیاری" },
+  { id: "Khorasan Razavi", name: "خراسان رضوی" },
+  { id: "Khorasan Shomali", name: "خراسان شمالی" },
+  { id: "Khuzestan", name: "خوزستان" },
+  { id: "Zanjan", name: "زنجان" },
+  { id: "Semnan", name: "سمنان" },
+  { id: "Sistan va Baluchestan", name: "سیستان و بلوچستان" },
+  { id: "Fars", name: "فارس" },
+  { id: "Qazvin", name: "قزوین" },
+  { id: "Qom", name: "قم" },
+  { id: "Kordestan", name: "کردستان" },
+  { id: "Kerman", name: "کرمان" },
+  { id: "Kermanshah", name: "کرمانشاه" },
+  { id: "Kohgiluyeh va Buyer Ahmad", name: "کهگیلویه و بویراحمد" },
+  { id: "Golestan", name: "گلستان" },
+  { id: "Gilan", name: "گیلان" },
+  { id: "Larestan", name: "لرستان" },
+  { id: "Mazandaran", name: "مازندران" },
+  { id: "Markazi", name: "مرکزی" },
+  { id: "Hormozgan", name: "هرمزگان" },
+  { id: "Hamedan", name: "همدان" },
+  { id: "Yazd", name: "یزد" },
+  { id: "Khorasan Razavi", name: "خراسان رضوی" },
 ];
 
 const IranMap = () => {
