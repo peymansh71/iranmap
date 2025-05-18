@@ -17,11 +17,53 @@ import {
   Paper,
   Typography,
   IconButton,
+  Divider,
+  Button,
+  TextField,
 } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PieChartIcon from "@mui/icons-material/PieChart";
 import ReactECharts from "echarts-for-react";
+import Autocomplete from "@mui/material/Autocomplete";
+import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import SettingsIcon from "@mui/icons-material/Settings";
+
+// List of 32 provinces in Persian
+const provinceList = [
+  "آذربایجان شرقی",
+  "آذربایجان غربی",
+  "اردبیل",
+  "اصفهان",
+  "البرز",
+  "ایلام",
+  "بوشهر",
+  "تهران",
+  "چهارمحال و بختیاری",
+  "خراسان جنوبی",
+  "خراسان رضوی",
+  "خراسان شمالی",
+  "خوزستان",
+  "زنجان",
+  "سمنان",
+  "سیستان و بلوچستان",
+  "فارس",
+  "قزوین",
+  "قم",
+  "کردستان",
+  "کرمان",
+  "کرمانشاه",
+  "کهگیلویه و بویراحمد",
+  "گلستان",
+  "گیلان",
+  "لرستان",
+  "مازندران",
+  "مرکزی",
+  "هرمزگان",
+  "همدان",
+  "یزد",
+  "خراسان رضوی",
+];
 
 const IranMap = () => {
   const [selectedProvince, setSelectedProvince] = useState(null);
@@ -29,6 +71,41 @@ const IranMap = () => {
   const [tab, setTab] = useState(0);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [selectedAddProvince, setSelectedAddProvince] = useState(null);
+  const [fields, setFields] = useState([{ label: "", value: "" }]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [availableIndexes, setAvailableIndexes] = useState([
+    "جمعیت",
+    "مساحت (کیلومتر مربع)",
+    "تراکم جمعیت",
+    "درصد سهم تولید ناخالص داخلی",
+  ]);
+  const [newIndex, setNewIndex] = useState("");
+
+  // Reset fields when modal opens/closes or province changes
+  React.useEffect(() => {
+    if (!addModalOpen) {
+      setFields([{ label: "", value: "" }]);
+      setSelectedAddProvince(null);
+    }
+  }, [addModalOpen]);
+
+  const handleFieldChange = (idx, key, val) => {
+    setFields((fields) =>
+      fields.map((f, i) => (i === idx ? { ...f, [key]: val } : f))
+    );
+  };
+
+  const handleAddField = () => {
+    setFields((fields) => [...fields, { label: "", value: "" }]);
+  };
+
+  const handleRemoveField = (idx) => {
+    setFields((fields) =>
+      fields.length === 1 ? fields : fields.filter((_, i) => i !== idx)
+    );
+  };
 
   const handleLogout = () => {
     logout();
@@ -151,7 +228,12 @@ const IranMap = () => {
       orient: "horizontal",
       bottom: 0,
       left: "center",
-      textStyle: { fontFamily: "inherit" },
+      textStyle: {
+        fontFamily: "inherit",
+        width: 100,
+        overflow: "truncate",
+      },
+      itemGap: 24,
     },
     series: [
       {
@@ -205,6 +287,16 @@ const IranMap = () => {
   styleSheet.innerText = `.leaflet-interactive:focus { outline: none !important; }`;
   document.head.appendChild(styleSheet);
 
+  const handleAddIndex = () => {
+    if (newIndex.trim() && !availableIndexes.includes(newIndex.trim())) {
+      setAvailableIndexes([...availableIndexes, newIndex.trim()]);
+      setNewIndex("");
+    }
+  };
+  const handleRemoveIndex = (idx) => {
+    setAvailableIndexes(availableIndexes.filter((_, i) => i !== idx));
+  };
+
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
       <div
@@ -217,6 +309,21 @@ const IranMap = () => {
           gap: "10px",
         }}
       >
+        <IconButton
+          onClick={() => setSettingsOpen(true)}
+          color="primary"
+          sx={{ background: "#fff", border: "1px solid #1976d2" }}
+        >
+          <SettingsIcon />
+        </IconButton>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setAddModalOpen(true)}
+          sx={{ fontWeight: "bold", background: "#1976d2" }}
+        >
+          افزودن اطلاعات
+        </Button>
         <button
           onClick={handleLogout}
           style={{
@@ -324,6 +431,8 @@ const IranMap = () => {
               {selectedProvinceInfo?.name || "استانی انتخاب نشده است"}
             </Typography>
           </Box>
+
+          <Divider />
           <Box
             sx={{
               flex: 1,
@@ -408,6 +517,142 @@ const IranMap = () => {
                 style={{ height: "100%", width: 500 }}
               />
             )}
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Add Province Information Modal */}
+      <Modal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        aria-labelledby="add-info-modal"
+        sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            borderRadius: 2,
+            minWidth: 500,
+            maxWidth: 800,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2, textAlign: "center" }}>
+            افزودن اطلاعات استان
+          </Typography>
+          <Autocomplete
+            options={provinceList}
+            value={selectedAddProvince}
+            onChange={(_, newValue) => setSelectedAddProvince(newValue)}
+            renderInput={(params) => (
+              <TextField {...params} label="انتخاب استان" variant="outlined" />
+            )}
+            sx={{ mb: 2 }}
+            fullWidth
+          />
+          {selectedAddProvince && (
+            <>
+              {fields.map((field, idx) => (
+                <Box
+                  key={idx}
+                  sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+                >
+                  <TextField
+                    label="شاخص"
+                    value={field.label}
+                    onChange={(e) =>
+                      handleFieldChange(idx, "label", e.target.value)
+                    }
+                    sx={{ flex: 2 }}
+                  />
+                  <TextField
+                    label="مقدار"
+                    type="number"
+                    value={field.value}
+                    onChange={(e) =>
+                      handleFieldChange(idx, "value", e.target.value)
+                    }
+                    sx={{ flex: 1 }}
+                  />
+                  <IconButton
+                    onClick={() => handleRemoveField(idx)}
+                    disabled={fields.length === 1}
+                    color="error"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                startIcon={<AddIcon />}
+                onClick={handleAddField}
+                sx={{ mb: 2 }}
+              >
+                افزودن شاخص
+              </Button>
+            </>
+          )}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+            <Button onClick={() => setAddModalOpen(false)} color="error">
+              بستن
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Settings Modal for managing indexes */}
+      <Modal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        aria-labelledby="settings-modal"
+        sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            borderRadius: 2,
+            minWidth: 700,
+            maxWidth: 900,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2, textAlign: "center" }}>
+            مدیریت شاخص‌ها
+          </Typography>
+          {availableIndexes.map((idx, i) => (
+            <Box
+              key={i}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: 1,
+              }}
+            >
+              <TextField
+                value={idx}
+                disabled
+                sx={{ flex: 1, backgroundColor: "#f0f0f0" }}
+              />
+              <IconButton
+                onClick={() => handleRemoveIndex(i)}
+                color="error"
+                disabled={availableIndexes.length === 1}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          ))}
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1, mt: 2 }}>
+            <TextField
+              label="افزودن شاخص جدید"
+              value={newIndex}
+              onChange={(e) => setNewIndex(e.target.value)}
+              sx={{ flex: 1 }}
+            />
+
+            <IconButton onClick={handleAddIndex} color="primary">
+              <AddIcon />
+            </IconButton>
           </Box>
         </Box>
       </Modal>
