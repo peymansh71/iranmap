@@ -37,13 +37,13 @@ const IranMap = () => {
   };
 
   const handleProvinceClick = (name) => {
-    console.log(name);
     setSelectedProvince(name);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setSelectedProvince(null);
   };
 
   const defaultStyle = useMemo(
@@ -74,18 +74,12 @@ const IranMap = () => {
   const onEachProvince = useCallback(
     (feature, layer) => {
       const name = feature.properties.name_en;
-      const population = populationData[name] || "Unknown";
-
-      layer.bindTooltip(`${name}: ${population.toLocaleString()}`, {
-        sticky: true,
-        direction: "top",
-      });
 
       layer.on({
         click: () => handleProvinceClick(name),
         mouseover: (e) => {
           e.target.setStyle({
-            weight: 2,
+            weight: 0,
             color: "lightblue",
             fillColor: "lightblue",
             fillOpacity: 0.7,
@@ -106,6 +100,10 @@ const IranMap = () => {
       (info) => info.province === selectedProvince
     );
   }, [selectedProvince]);
+
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = `.leaflet-interactive:focus { outline: none !important; }`;
+  document.head.appendChild(styleSheet);
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
