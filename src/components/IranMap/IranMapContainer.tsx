@@ -1,29 +1,53 @@
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import iranProvinces from "./iranProvinces.json";
-import iranMask from "./iranMask.json"; // The inverse mask layer
+import type { FeatureCollection } from "geojson";
+import iranProvincesRaw from "./iranProvinces.json";
+import iranMaskRaw from "./iranMask.json"; // The inverse mask layer
 import useAuthStore from "../../store/authStore";
 import { useNavigate } from "react-router-dom";
 import { IconButton, Box, Tooltip } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
 import useProvinceInfoStore from "../../store/provinceInfoStore";
-import ProvinceInfoModal from "./ProvinceInfoModal";
-import AddProvinceInfoModal from "./AddProvinceInfoModal";
-import ManageIndexesModal from "./ManageIndexesModal";
+import ProvinceInfoModal from "./ProvinceInfoModal.tsx";
+import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
+import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import AddIcon from "@mui/icons-material/Add";
 import LogoutIcon from "@mui/icons-material/Logout";
 
-const IranMapContainer = () => {
-  const [selectedProvince, setSelectedProvince] = useState(null);
+// Type definitions
+interface Province {
+  id: number;
+  name_fa: string;
+  name_en?: string;
+}
+
+interface Project {
+  id: number;
+  name: string;
+}
+
+interface Field {
+  label: string;
+  value: string;
+}
+
+const iranProvinces = iranProvincesRaw as FeatureCollection;
+const iranMask = iranMaskRaw as FeatureCollection;
+
+export const IranMapContainer = () => {
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tab, setTab] = useState(0);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [selectedAddProvince, setSelectedAddProvince] = useState(null);
-  const [fields, setFields] = useState([{ label: "", value: "" }]);
+  const [selectedAddProvince, setSelectedAddProvince] =
+    useState<Province | null>(null);
+  const [fields, setFields] = useState<Field[]>([{ label: "", value: "" }]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const indexes = useIndexesStore((state) => state.indexes);
   const addIndex = useIndexesStore((state) => state.addIndex);
@@ -39,16 +63,17 @@ const IranMapContainer = () => {
     (state) => state.getProvinceInfoByName
   );
   const resetStore = useProvinceInfoStore((state) => state.resetStore);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [projectList, setProjectList] = useState([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   // Example: Replace this with your actual project data source
   // This should be an object mapping province id to array of projects
-  const allProjectsByProvince = useMemo(
-    () => [
-      { id: 1, name: "پروژه ۱" },
-      { id: 2, name: "پروژه ۲" },
-    ],
+  const allProjectsByProvince = useMemo<Record<number, Project[]>>(
+    () => ({
+      // Example structure:
+      // 1: [{ id: 1, name: "پروژه ۱" }, { id: 2, name: "پروژه ۲" }],
+      // 2: [{ id: 3, name: "پروژه ۳" }],
+    }),
     []
   );
 
@@ -279,7 +304,6 @@ const IranMapContainer = () => {
         provinceInfo={selectedProvinceInfo}
         tab={tab}
         setTab={setTab}
-        persianLabels={persianLabels}
       />
 
       <AddProvinceInfoModal
@@ -311,5 +335,3 @@ const IranMapContainer = () => {
     </Box>
   );
 };
-
-export default IranMapContainer;

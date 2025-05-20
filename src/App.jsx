@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import IranMapContainer from "./components/IranMap/IranMapContainer";
+import { IranMapContainer } from "./components/IranMap/IranMapContainer.tsx";
 import Login from "./components/Login/Login";
 import useAuthStore from "./store/authStore";
 import "./styles/global.css";

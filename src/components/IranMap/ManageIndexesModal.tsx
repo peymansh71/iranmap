@@ -11,7 +11,17 @@ import {
 import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 
-const ManageIndexesModal = ({
+interface ManageIndexesModalProps {
+  open: boolean;
+  onClose: () => void;
+  indexes: string[];
+  newIndex: string;
+  setNewIndex: (val: string) => void;
+  onAddIndex: () => void;
+  onRemoveIndex: (idx: number) => void;
+}
+
+const ManageIndexesModal: React.FC<ManageIndexesModalProps> = ({
   open,
   onClose,
   indexes,

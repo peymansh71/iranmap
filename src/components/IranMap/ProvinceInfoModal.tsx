@@ -3,21 +3,12 @@ import { Modal, Box, Typography, IconButton, Divider } from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PieChartIcon from "@mui/icons-material/PieChart";
-import ProvinceTable from "./components/ProvinceTable";
-import ProvincePieChart from "./components/ProvincePieChart";
-import ProvinceBarChart from "./components/ProvinceBarChart";
+import ProvinceTable from "./components/ProvinceTable.tsx";
+import ProvincePieChart from "./components/ProvincePieChart.tsx";
+import ProvinceBarChart from "./components/ProvinceBarChart.tsx";
 
-const ProvinceInfoModal = ({
-  open,
-  onClose,
-  provinceInfo,
-  tab,
-  setTab,
-  persianLabels,
-}) => {
+const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
   const hasData = provinceInfo?.fields?.length > 0;
-
-  console.log(provinceInfo);
 
   return (
     <Modal
@@ -96,24 +87,9 @@ const ProvinceInfoModal = ({
             </Typography>
           ) : (
             <>
-              {tab === 0 && (
-                <ProvinceTable
-                  provinceInfo={provinceInfo}
-                  persianLabels={persianLabels}
-                />
-              )}
-              {tab === 1 && (
-                <ProvincePieChart
-                  provinceInfo={provinceInfo}
-                  persianLabels={persianLabels}
-                />
-              )}
-              {tab === 2 && (
-                <ProvinceBarChart
-                  provinceInfo={provinceInfo}
-                  persianLabels={persianLabels}
-                />
-              )}
+              {tab === 0 && <ProvinceTable provinceInfo={provinceInfo} />}
+              {tab === 1 && <ProvincePieChart provinceInfo={provinceInfo} />}
+              {tab === 2 && <ProvinceBarChart provinceInfo={provinceInfo} />}
             </>
           )}
         </Box>

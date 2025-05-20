@@ -10,7 +10,39 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 
-const AddProvinceInfoModal = ({
+interface Province {
+  id: number;
+  name_fa: string;
+}
+
+interface Project {
+  id: number;
+  name: string;
+}
+
+interface Field {
+  label: string;
+  value: string;
+}
+
+interface AddProvinceInfoModalProps {
+  open: boolean;
+  onClose: () => void;
+  provinceList: Province[];
+  selectedProvince: Province | null;
+  setSelectedProvince: (province: Province | null) => void;
+  projectList: Project[];
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
+  fields: Field[];
+  onFieldChange: (idx: number, key: string, val: string) => void;
+  onAddField: () => void;
+  onRemoveField: (idx: number) => void;
+  onSave: () => void;
+  indexes: string[];
+}
+
+const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
   open,
   onClose,
   provinceList,
