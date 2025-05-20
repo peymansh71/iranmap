@@ -39,7 +39,7 @@ const AddProvinceInfoModal = ({
       }}
     >
       <Typography variant="h6" sx={{ mb: 2, textAlign: "center" }}>
-        افزودن اطلاعات استان
+        افزودن اطلاعات
       </Typography>
       <Autocomplete
         options={provinceList}

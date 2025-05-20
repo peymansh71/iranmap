@@ -22,7 +22,7 @@ const LoginForm = ({
     formData.username.trim() !== "" && formData.password.trim() !== "";
 
   return (
-    <form onSubmit={handleSubmit} style={styles.form}>
+    <form onSubmit={handleSubmit} style={styles.form} dir="rtl">
       <div
         style={{
           textAlign: "center",
@@ -58,7 +58,7 @@ const LoginForm = ({
       <FormInput
         type="text"
         name="username"
-        placeholder="نام کاربری"
+        label="نام کاربری"
         value={formData.username}
         onChange={handleInputChange}
         icon={PersonIcon}
@@ -68,7 +68,7 @@ const LoginForm = ({
       <FormInput
         type="password"
         name="password"
-        placeholder="گذرواژه"
+        label="گذرواژه"
         value={formData.password}
         onChange={handleInputChange}
         icon={LockIcon}

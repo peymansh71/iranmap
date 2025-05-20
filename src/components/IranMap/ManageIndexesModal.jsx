@@ -7,7 +7,9 @@ import {
   IconButton,
   Button,
 } from "@mui/material";
-import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+// import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 
 const ManageIndexesModal = ({
   open,
@@ -44,7 +46,7 @@ const ManageIndexesModal = ({
             sx={{ flex: 1, backgroundColor: "#f0f0f0" }}
           />
           <IconButton onClick={() => onRemoveIndex(i)} color="error">
-            <DeleteIcon />
+            <HighlightOffOutlinedIcon />
           </IconButton>
         </Box>
       ))}
@@ -56,7 +58,7 @@ const ManageIndexesModal = ({
           sx={{ flex: 1 }}
         />
         <IconButton onClick={onAddIndex} color="primary">
-          <AddIcon />
+          <AddOutlinedIcon />
         </IconButton>
       </Box>
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>

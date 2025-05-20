@@ -1,5 +1,6 @@
 import React from "react";
 import { styles } from "./styles";
+import { TextField, InputAdornment, IconButton } from "@mui/material";
 
 const FormInput = ({
   type = "text",
@@ -17,41 +18,44 @@ const FormInput = ({
 
   return (
     <div style={styles.inputContainer}>
-      {Icon && <Icon style={{ ...styles.icon, color: "rgb(190, 190, 190)" }} />}
-
-      <input
+      <TextField
         type={isPassword && showPassword ? "text" : type}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        style={{
-          ...styles.input,
-          ...(document.activeElement ===
-          document.querySelector(`input[placeholder="${placeholder}"]`)
-            ? styles.inputFocus
-            : {}),
-        }}
         disabled={disabled}
         autoComplete="new-password"
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
         name={`${type}-${Math.random()}`}
+        fullWidth
+        InputLabelProps={{
+          shrink: true,
+        }}
+        InputProps={{
+          style: { textAlign: "right", direction: "ltr" },
+          startAdornment: Icon && (
+            <InputAdornment position="start">
+              <Icon style={{ color: "rgb(190, 190, 190)" }} />
+            </InputAdornment>
+          ),
+        }}
         {...props}
       />
-      {!!isPassword && (
-        <button
-          type="button"
-          onClick={onTogglePassword}
-          style={styles.passwordToggle}
-          disabled={disabled}
-        >
-          {VisibilityIcon && (
-            <VisibilityIcon
-              style={{ fontSize: "1.2rem", color: "rgb(190, 190, 190)" }}
-            />
-          )}
-        </button>
+
+      {VisibilityIcon && (
+        <VisibilityIcon
+          style={{
+            color: "rgb(190, 190, 190)",
+            position: "absolute",
+            right: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "none",
+            fontSize: "1.2rem",
+          }}
+        />
       )}
     </div>
   );
