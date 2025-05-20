@@ -6,6 +6,7 @@ export const useLogin = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    rememberMe: false,
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -15,8 +16,11 @@ export const useLogin = () => {
   const navigate = useNavigate();
 
   const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   }, []);
 
   const handleSubmit = async (e) => {

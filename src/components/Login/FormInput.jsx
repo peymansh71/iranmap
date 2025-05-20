@@ -7,6 +7,7 @@ const FormInput = ({
   value,
   onChange,
   icon: Icon,
+  visibilityIcon: VisibilityIcon,
   disabled,
   showPassword,
   onTogglePassword,
@@ -16,6 +17,8 @@ const FormInput = ({
 
   return (
     <div style={styles.inputContainer}>
+      {Icon && <Icon style={{ ...styles.icon, color: "rgb(190, 190, 190)" }} />}
+
       <input
         type={isPassword && showPassword ? "text" : type}
         placeholder={placeholder}
@@ -36,17 +39,19 @@ const FormInput = ({
         name={`${type}-${Math.random()}`}
         {...props}
       />
-      {isPassword ? (
+      {!!isPassword && (
         <button
           type="button"
           onClick={onTogglePassword}
           style={styles.passwordToggle}
           disabled={disabled}
         >
-          {Icon && <Icon style={{ fontSize: "1.2rem" }} />}
+          {VisibilityIcon && (
+            <VisibilityIcon
+              style={{ fontSize: "1.2rem", color: "rgb(190, 190, 190)" }}
+            />
+          )}
         </button>
-      ) : (
-        Icon && <Icon style={styles.icon} />
       )}
     </div>
   );
