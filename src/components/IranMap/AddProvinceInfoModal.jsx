@@ -16,6 +16,9 @@ const AddProvinceInfoModal = ({
   provinceList,
   selectedProvince,
   setSelectedProvince,
+  projectList,
+  selectedProject,
+  setSelectedProject,
   fields,
   onFieldChange,
   onAddField,
@@ -44,7 +47,10 @@ const AddProvinceInfoModal = ({
       <Autocomplete
         options={provinceList}
         value={selectedProvince}
-        onChange={(_, newValue) => setSelectedProvince(newValue)}
+        onChange={(_, newValue) => {
+          setSelectedProvince(newValue);
+          setSelectedProject(null); // Reset project when province changes
+        }}
         getOptionLabel={(option) => option.name_fa}
         renderInput={(params) => (
           <TextField {...params} label="انتخاب استان" variant="outlined" />
@@ -53,6 +59,19 @@ const AddProvinceInfoModal = ({
         fullWidth
       />
       {selectedProvince && (
+        <Autocomplete
+          options={projectList}
+          value={selectedProject}
+          onChange={(_, newValue) => setSelectedProject(newValue)}
+          getOptionLabel={(option) => option?.name || ""}
+          renderInput={(params) => (
+            <TextField {...params} label="انتخاب پروژه" variant="outlined" />
+          )}
+          sx={{ mb: 2 }}
+          fullWidth
+        />
+      )}
+      {selectedProvince && selectedProject && (
         <>
           {fields.map((field, idx) => (
             <Box

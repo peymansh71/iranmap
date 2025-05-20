@@ -1,6 +1,6 @@
 import React from "react";
 import { styles } from "./styles";
-import { TextField, InputAdornment, IconButton } from "@mui/material";
+import { TextField, InputAdornment } from "@mui/material";
 
 const FormInput = ({
   type = "text",

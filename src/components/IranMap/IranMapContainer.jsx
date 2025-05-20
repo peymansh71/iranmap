@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import iranProvinces from "./iranProvinces.json";
 import iranMask from "./iranMask.json"; // The inverse mask layer
 import useAuthStore from "../../store/authStore";
@@ -39,6 +39,28 @@ const IranMapContainer = () => {
     (state) => state.getProvinceInfoByName
   );
   const resetStore = useProvinceInfoStore((state) => state.resetStore);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectList, setProjectList] = useState([]);
+
+  // Example: Replace this with your actual project data source
+  // This should be an object mapping province id to array of projects
+  const allProjectsByProvince = useMemo(
+    () => [
+      { id: 1, name: "پروژه ۱" },
+      { id: 2, name: "پروژه ۲" },
+    ],
+    []
+  );
+
+  useEffect(() => {
+    if (selectedAddProvince && selectedAddProvince.id) {
+      setProjectList(allProjectsByProvince[selectedAddProvince.id] || []);
+      setSelectedProject(null);
+    } else {
+      setProjectList([]);
+      setSelectedProject(null);
+    }
+  }, [selectedAddProvince, allProjectsByProvince]);
 
   React.useEffect(() => {
     if (!addModalOpen) {
@@ -67,7 +89,6 @@ const IranMapContainer = () => {
   };
 
   const handleProvinceClick = (name) => {
-    // Find the province info from the list
     const provinceInfo = provinceInfoList.find(
       (p) => p.province.name_en === name
     );
@@ -142,7 +163,7 @@ const IranMapContainer = () => {
     area: "مساحت (کیلومتر مربع)",
     density: "تراکم جمعیت",
     manageIndexes: "مدیریت اندیس‌ها",
-    addProvinceInfo: "افزودن اطلاعات استان",
+    addProvinceInfo: "افزودن اطلاعات ",
     logout: "خروج",
   };
 
@@ -161,10 +182,11 @@ const IranMapContainer = () => {
   };
 
   const handleAddProvinceInfo = () => {
-    if (!selectedAddProvince) return;
+    if (!selectedAddProvince || !selectedProject) return;
     const filteredFields = fields.filter((f) => f.label && f.value !== "");
     if (filteredFields.length === 0) return;
-    addProvinceInfo(selectedAddProvince, filteredFields);
+    // Store data based on both province and project
+    addProvinceInfo(selectedAddProvince, selectedProject, filteredFields);
     setAddModalOpen(false);
   };
 
@@ -266,6 +288,9 @@ const IranMapContainer = () => {
         provinceList={provinceInfoList.map((info) => info.province)}
         selectedProvince={selectedAddProvince}
         setSelectedProvince={setSelectedAddProvince}
+        projectList={projectList}
+        selectedProject={selectedProject}
+        setSelectedProject={setSelectedProject}
         fields={fields}
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}
