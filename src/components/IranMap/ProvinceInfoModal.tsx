@@ -17,7 +17,14 @@ import ProvinceTable from "./components/ProvinceTable.tsx";
 import ProvincePieChart from "./components/ProvincePieChart.tsx";
 import ProvinceBarChart from "./components/ProvinceBarChart.tsx";
 
-const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
+const ProvinceInfoModal = ({
+  open,
+  onClose,
+  provinceInfo,
+  tab,
+  setTab,
+  selectedProjectName,
+}) => {
   const [selectedProject, setSelectedProject] = useState("");
 
   const hasProjects = provinceInfo?.projects?.length > 0;
@@ -26,11 +33,20 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
   // Reset selected project when modal opens or province changes
   useEffect(() => {
     if (open && hasProjects) {
-      setSelectedProject(projects[0]?.name || "");
+      // If a specific project is requested (from marker click), select it
+      if (
+        selectedProjectName &&
+        projects.some((p) => p.name === selectedProjectName)
+      ) {
+        setSelectedProject(selectedProjectName);
+      } else {
+        // Otherwise select the first project
+        setSelectedProject(projects[0]?.name || "");
+      }
     } else {
       setSelectedProject("");
     }
-  }, [open, provinceInfo, hasProjects]);
+  }, [open, provinceInfo, hasProjects, selectedProjectName]);
 
   const currentProject = projects.find((p) => p.name === selectedProject);
   const hasData = currentProject?.fields?.length > 0;

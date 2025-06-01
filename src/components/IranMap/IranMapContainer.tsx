@@ -1,4 +1,11 @@
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  Marker,
+  Popup,
+  Tooltip as LeafletTooltip,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import type { FeatureCollection } from "geojson";
@@ -16,21 +23,37 @@ import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import LogoutIcon from "@mui/icons-material/Logout";
 import L from "leaflet";
 
-// Fix Leaflet default icon issue with webpack
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
+// Fix Leaflet default icon issue with webpack - safer approach
+try {
+  // @ts-ignore
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+    iconUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  });
+} catch (e) {
+  // Icon fix failed, but app will still work
+}
 
 // Create custom icons for different project types
 const createCustomIcon = (color: string) => {
   return L.divIcon({
-    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    html: `
+      <div class="project-marker" style="
+        background-color: ${color}; 
+        width: 20px; 
+        height: 20px; 
+        border-radius: 50%; 
+        border: 2px solid white; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+        cursor: pointer;
+        transition: all 0.2s ease;
+      "></div>
+    `,
     className: "custom-marker",
     iconSize: [20, 20],
     iconAnchor: [10, 10],
@@ -72,6 +95,7 @@ export const IranMapContainer = () => {
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(
     null
   );
+  const [selectedProjectName, setSelectedProjectName] = useState<string>("");
   const [tab, setTab] = useState(0);
   const [projectName, setProjectName] = useState<string>("");
   const [projectType, setProjectType] = useState<string>("");
@@ -91,7 +115,6 @@ export const IranMapContainer = () => {
   const getProvinceInfoByName = useProvinceInfoStore(
     (state) => state.getProvinceInfoByName
   );
-  const resetStore = useProvinceInfoStore((state) => state.resetStore);
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
@@ -147,6 +170,7 @@ export const IranMapContainer = () => {
   const handleCloseInfoModal = () => {
     setInfoModalOpen(false);
     setSelectedProvince(null);
+    setSelectedProjectName("");
   };
 
   const defaultStyle = useMemo(
@@ -214,7 +238,16 @@ export const IranMapContainer = () => {
   };
 
   const styleSheet = document.createElement("style");
-  styleSheet.innerText = `.leaflet-interactive:focus { outline: none !important; }`;
+  styleSheet.innerText = `
+    .leaflet-interactive:focus { outline: none !important; }
+    .project-marker:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
+    }
+    .custom-marker {
+      z-index: 1000;
+    }
+  `;
   document.head.appendChild(styleSheet);
 
   const handleAddIndex = () => {
@@ -259,9 +292,21 @@ export const IranMapContainer = () => {
     setClickCoordinates(null);
   };
 
-  React.useEffect(() => {
-    resetStore();
-  }, [resetStore]);
+  // Handle marker click to open ProvinceInfoModal with specific project
+  const handleMarkerClick = (projectId: string) => {
+    // Find the project and its province
+    for (const provinceInfo of provinceInfoList) {
+      const projectIndex = projectId.split("-")[1];
+      const project = provinceInfo.projects[parseInt(projectIndex)];
+      if (project) {
+        // Set the selected province and project, then open info modal
+        setSelectedProvince(provinceInfo.province);
+        setSelectedProjectName(project.name);
+        setInfoModalOpen(true);
+        break;
+      }
+    }
+  };
 
   // Get all projects from all provinces to display as markers
   const allProjects = useMemo(() => {
@@ -329,19 +374,10 @@ export const IranMapContainer = () => {
             icon={createCustomIcon(
               projectTypeColors[project.type] || "#757575"
             )}
-          >
-            <Popup>
-              <div style={{ direction: "rtl", textAlign: "right" }}>
-                <h4>{project.name}</h4>
-                <p>
-                  <strong>نوع:</strong> {project.type}
-                </p>
-                <p>
-                  <strong>استان:</strong> {project.provinceName}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
+            eventHandlers={{
+              click: () => handleMarkerClick(project.id),
+            }}
+          ></Marker>
         ))}
       </MapContainer>
 
@@ -437,6 +473,7 @@ export const IranMapContainer = () => {
         }
         tab={tab}
         setTab={setTab}
+        selectedProjectName={selectedProjectName}
       />
 
       <AddProvinceInfoModal
