@@ -9,6 +9,10 @@ import {
   Stepper,
   Step,
   StepLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
@@ -31,6 +35,8 @@ interface AddProvinceInfoModalProps {
   setSelectedProvince: (province: Province | null) => void;
   projectName: string;
   setProjectName: (projectName: string) => void;
+  projectType: string;
+  setProjectType: (projectType: string) => void;
   fields: Field[];
   onFieldChange: (idx: number, key: string, val: string) => void;
   onAddField: () => void;
@@ -41,6 +47,16 @@ interface AddProvinceInfoModalProps {
 
 const steps = ["اطلاعات پروژه", "شاخص‌های پروژه"];
 
+const projectTypes = [
+  "آزادراه و بزرگراه",
+  "راه آهن برونشهری",
+  "راه اصلی و فرعی",
+  "راه آهن شهری و حومه",
+  "تونل",
+  "تقاطع غیره مسطح",
+  "ابنیه",
+];
+
 const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
   open,
   onClose,
@@ -49,6 +65,8 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
   setSelectedProvince,
   projectName,
   setProjectName,
+  projectType,
+  setProjectType,
   fields,
   onFieldChange,
   onAddField,
@@ -71,7 +89,8 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
     onClose();
   };
 
-  const isStep1Valid = selectedProvince && projectName.trim().length > 0;
+  const isStep1Valid =
+    selectedProvince && projectName.trim().length > 0 && projectType.length > 0;
   const isStep2Valid = fields.some(
     (field) => field.label.trim() && field.value.trim() !== ""
   );
@@ -89,7 +108,7 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
         return (
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              برای شروع، نام پروژه را وارد کنید
+              برای شروع، نام پروژه و نوع آن را وارد کنید
             </Typography>
             <Autocomplete
               options={provinceList}
@@ -98,6 +117,7 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
                 setSelectedProvince(newValue);
                 if (newValue?.id !== selectedProvince?.id) {
                   setProjectName(""); // Only reset project name when province actually changes
+                  setProjectType(""); // Also reset project type
                 }
               }}
               getOptionLabel={(option) => option.name_fa}
@@ -122,6 +142,21 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
               placeholder="نام پروژه را وارد کنید"
               required
             />
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>نوع پروژه</InputLabel>
+              <Select
+                value={projectType}
+                label="نوع پروژه"
+                onChange={(e) => setProjectType(e.target.value)}
+                required
+              >
+                {projectTypes.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         );
       case 1:
@@ -130,6 +165,9 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
             <Typography variant="subtitle1" sx={{ mb: 2 }}>
               استان: <strong>{selectedProvince?.name_fa}</strong> | پروژه:{" "}
               <strong>{projectName}</strong>
+            </Typography>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              نوع پروژه: <strong>{projectType}</strong>
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               حداقل یک شاخص با مقدار معتبر وارد کنید

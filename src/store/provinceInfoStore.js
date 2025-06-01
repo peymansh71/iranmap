@@ -126,6 +126,8 @@ const useProvinceInfoStore = create(
                 const updatedProjects = [...info.projects];
                 updatedProjects[existingProjectIndex] = {
                   name: project.name,
+                  type: project.type,
+                  coordinates: project.coordinates,
                   fields,
                 };
                 return { ...info, projects: updatedProjects };
@@ -133,7 +135,15 @@ const useProvinceInfoStore = create(
                 // Add new project
                 return {
                   ...info,
-                  projects: [...info.projects, { name: project.name, fields }],
+                  projects: [
+                    ...info.projects,
+                    {
+                      name: project.name,
+                      type: project.type,
+                      coordinates: project.coordinates,
+                      fields,
+                    },
+                  ],
                 };
               }
             }

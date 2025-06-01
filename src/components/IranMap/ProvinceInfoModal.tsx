@@ -41,6 +41,7 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
         ...provinceInfo,
         fields: currentProject.fields,
         projectName: currentProject.name,
+        projectType: currentProject.type,
       }
     : null;
 
@@ -116,7 +117,7 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
             >
               {projects.map((project) => (
                 <MenuItem key={project.name} value={project.name}>
-                  {project.name}
+                  {project.name} - {project.type}
                 </MenuItem>
               ))}
             </Select>

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import type { FeatureCollection } from "geojson";
@@ -6,7 +6,7 @@ import iranProvincesRaw from "./iranProvinces.json";
 import iranMaskRaw from "./iranMask.json"; // The inverse mask layer
 import useAuthStore from "../../store/authStore";
 import { useNavigate } from "react-router-dom";
-import { IconButton, Box, Tooltip } from "@mui/material";
+import { IconButton, Box, Tooltip, Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
 import useProvinceInfoStore from "../../store/provinceInfoStore";
@@ -14,6 +14,38 @@ import ProvinceInfoModal from "./ProvinceInfoModal.tsx";
 import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
 import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import LogoutIcon from "@mui/icons-material/Logout";
+import L from "leaflet";
+
+// Fix Leaflet default icon issue with webpack
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// Create custom icons for different project types
+const createCustomIcon = (color: string) => {
+  return L.divIcon({
+    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    className: "custom-marker",
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+};
+
+const projectTypeColors: Record<string, string> = {
+  "آزادراه و بزرگراه": "#FF5722", // Deep Orange
+  "راه آهن برونشهری": "#2196F3", // Blue
+  "راه اصلی و فرعی": "#4CAF50", // Green
+  "راه آهن شهری و حومه": "#9C27B0", // Purple
+  تونل: "#795548", // Brown
+  "تقاطع غیره مسطح": "#FF9800", // Orange
+  ابنیه: "#607D8B", // Blue Grey
+};
 
 // Type definitions
 interface Province {
@@ -41,6 +73,11 @@ export const IranMapContainer = () => {
     null
   );
   const [tab, setTab] = useState(0);
+  const [projectName, setProjectName] = useState<string>("");
+  const [projectType, setProjectType] = useState<string>("");
+  const [clickCoordinates, setClickCoordinates] = useState<
+    [number, number] | null
+  >(null);
   const indexes = useIndexesStore((state) => state.indexes);
   const addIndex = useIndexesStore((state) => state.addIndex);
   const removeIndex = useIndexesStore((state) => state.removeIndex);
@@ -55,7 +92,6 @@ export const IranMapContainer = () => {
     (state) => state.getProvinceInfoByName
   );
   const resetStore = useProvinceInfoStore((state) => state.resetStore);
-  const [projectName, setProjectName] = useState<string>("");
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
@@ -64,6 +100,8 @@ export const IranMapContainer = () => {
       setFields([{ label: "", value: "" }]);
       setSelectedAddProvince(null);
       setProjectName("");
+      setProjectType("");
+      setClickCoordinates(null);
     }
   }, [addModalOpen]);
 
@@ -86,13 +124,14 @@ export const IranMapContainer = () => {
     navigate("/login");
   };
 
-  const handleProvinceClick = (name) => {
+  const handleProvinceClick = (name, event) => {
     const provinceInfo = provinceInfoList.find(
       (p) => p.province.name_en === name
     );
 
-    if (provinceInfo) {
+    if (provinceInfo && event?.latlng) {
       setSelectedAddProvince(provinceInfo.province);
+      setClickCoordinates([event.latlng.lat, event.latlng.lng]);
       setAddModalOpen(true);
     }
   };
@@ -101,6 +140,8 @@ export const IranMapContainer = () => {
     setAddModalOpen(false);
     setSelectedAddProvince(null);
     setProjectName("");
+    setProjectType("");
+    setClickCoordinates(null);
   };
 
   const handleCloseInfoModal = () => {
@@ -139,7 +180,7 @@ export const IranMapContainer = () => {
     (feature, layer) => {
       const name = feature.properties.name_en;
       layer.on({
-        click: () => handleProvinceClick(name),
+        click: (e) => handleProvinceClick(name, e),
         mouseover: (e) => {
           e.target.setStyle({
             weight: 0,
@@ -187,16 +228,23 @@ export const IranMapContainer = () => {
   };
 
   const handleAddProvinceInfo = () => {
-    if (!selectedAddProvince || !projectName.trim()) return;
+    if (
+      !selectedAddProvince ||
+      !projectName.trim() ||
+      !projectType.trim() ||
+      !clickCoordinates
+    )
+      return;
     const filteredFields = fields.filter((f) => f.label && f.value !== "");
     if (filteredFields.length === 0) return;
 
-    // Store data based on both province and project name
-    addProvinceInfo(
-      selectedAddProvince,
-      { name: projectName.trim() },
-      filteredFields
-    );
+    // Store data with project type and coordinates
+    const projectData = {
+      name: projectName.trim(),
+      type: projectType.trim(),
+      coordinates: clickCoordinates,
+    };
+    addProvinceInfo(selectedAddProvince, projectData, filteredFields);
 
     // Close add modal and open info modal to show the created data
     setAddModalOpen(false);
@@ -207,11 +255,40 @@ export const IranMapContainer = () => {
     setFields([{ label: "", value: "" }]);
     setSelectedAddProvince(null);
     setProjectName("");
+    setProjectType("");
+    setClickCoordinates(null);
   };
 
   React.useEffect(() => {
     resetStore();
   }, [resetStore]);
+
+  // Get all projects from all provinces to display as markers
+  const allProjects = useMemo(() => {
+    const projects: Array<{
+      id: string;
+      name: string;
+      type: string;
+      coordinates: [number, number];
+      provinceName: string;
+    }> = [];
+
+    provinceInfoList.forEach((provinceInfo) => {
+      provinceInfo.projects.forEach((project, index) => {
+        if (project.coordinates) {
+          projects.push({
+            id: `${provinceInfo.province.id}-${index}`,
+            name: project.name,
+            type: project.type,
+            coordinates: project.coordinates,
+            provinceName: provinceInfo.province.name_fa,
+          });
+        }
+      });
+    });
+
+    return projects;
+  }, [provinceInfoList]);
 
   return (
     <Box sx={{ position: "relative", height: "100vh", width: "100vw" }}>
@@ -243,6 +320,29 @@ export const IranMapContainer = () => {
           onEachFeature={onEachProvince}
           style={style}
         />
+
+        {/* Project markers */}
+        {allProjects.map((project) => (
+          <Marker
+            key={project.id}
+            position={project.coordinates}
+            icon={createCustomIcon(
+              projectTypeColors[project.type] || "#757575"
+            )}
+          >
+            <Popup>
+              <div style={{ direction: "rtl", textAlign: "right" }}>
+                <h4>{project.name}</h4>
+                <p>
+                  <strong>نوع:</strong> {project.type}
+                </p>
+                <p>
+                  <strong>استان:</strong> {project.provinceName}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
 
       <Box
@@ -280,6 +380,55 @@ export const IranMapContainer = () => {
         </Tooltip>
       </Box>
 
+      {/* Legend for project types */}
+      {allProjects.length > 0 && (
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 16,
+            right: 16,
+            bgcolor: "background.paper",
+            p: 2,
+            borderRadius: 2,
+            boxShadow: 2,
+            zIndex: 1000,
+            maxWidth: 250,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
+            راهنمای نوع پروژه‌ها
+          </Typography>
+          {Object.entries(projectTypeColors).map(([type, color]) => {
+            const hasProjectsOfThisType = allProjects.some(
+              (p) => p.type === type
+            );
+            if (!hasProjectsOfThisType) return null;
+
+            return (
+              <Box
+                key={type}
+                sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
+              >
+                <Box
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    bgcolor: color,
+                    border: "2px solid white",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                    mr: 1,
+                  }}
+                />
+                <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
+                  {type}
+                </Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
+
       <ProvinceInfoModal
         open={infoModalOpen}
         onClose={handleCloseInfoModal}
@@ -298,6 +447,8 @@ export const IranMapContainer = () => {
         setSelectedProvince={setSelectedAddProvince}
         projectName={projectName}
         setProjectName={setProjectName}
+        projectType={projectType}
+        setProjectType={setProjectType}
         fields={fields}
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}
