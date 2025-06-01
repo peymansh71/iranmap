@@ -13,12 +13,20 @@ import iranProvincesRaw from "./iranProvinces.json";
 import iranMaskRaw from "./iranMask.json"; // The inverse mask layer
 import useAuthStore from "../../store/authStore";
 import { useNavigate } from "react-router-dom";
-import { IconButton, Box, Tooltip, Typography } from "@mui/material";
+import {
+  IconButton,
+  Box,
+  Tooltip,
+  Typography,
+  Modal,
+  Button,
+} from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
 import useProvinceInfoStore from "../../store/provinceInfoStore";
 import ProvinceInfoModal from "./ProvinceInfoModal.tsx";
 import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
+import AddHotelModal from "./AddHotelModal.tsx";
 import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import LogoutIcon from "@mui/icons-material/Logout";
 import L from "leaflet";
@@ -39,27 +47,6 @@ try {
   // Icon fix failed, but app will still work
 }
 
-// Create custom icons for different project types
-const createCustomIcon = (color: string) => {
-  return L.divIcon({
-    html: `
-      <div class="project-marker" style="
-        background-color: ${color}; 
-        width: 20px; 
-        height: 20px; 
-        border-radius: 50%; 
-        border: 2px solid white; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3); 
-        cursor: pointer;
-        transition: all 0.2s ease;
-      "></div>
-    `,
-    className: "custom-marker",
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-};
-
 const projectTypeColors: Record<string, string> = {
   "آزادراه و بزرگراه": "#FF5722", // Deep Orange
   "راه آهن برونشهری": "#2196F3", // Blue
@@ -68,6 +55,88 @@ const projectTypeColors: Record<string, string> = {
   تونل: "#795548", // Brown
   "تقاطع غیره مسطح": "#FF9800", // Orange
   ابنیه: "#607D8B", // Blue Grey
+};
+
+const hotelTypeColors: Record<string, string> = {
+  ویلا: "#E91E63", // Pink
+  اپارتمان: "#00BCD4", // Cyan
+  هتل: "#FFC107", // Amber
+  "هتل آپارتمان": "#8BC34A", // Light Green
+};
+
+// Get hotel icon emoji - you can easily change this
+const getHotelIcon = () => {
+  // Options: 🏨 🏩 🛏️ 🏠 🏘️ 🏖️
+  return "🛏️"; // Currently using hotel emoji
+};
+
+// Get project icon emoji based on project type
+const getProjectIcon = (projectType: string) => {
+  const projectIcons: Record<string, string> = {
+    "آزادراه و بزرگراه": "🛣️", // Highway/Freeway
+    "راه آهن برونشهری": "🚄", // High-speed train (Intercity Railway)
+    "راه اصلی و فرعی": "🚧", // Construction/Road work (Main & Secondary Roads)
+    "راه آهن شهری و حومه": "🚇", // Metro/Subway (Urban Railway)
+    تونل: "🕳️", // Tunnel hole
+    "تقاطع غیره مسطح": "🌉", // Bridge (Grade Separation)
+    ابنیه: "🏗️", // Construction crane (Buildings/Structures)
+  };
+
+  return projectIcons[projectType] || "🏗️"; // Default to construction if type not found
+};
+
+// Create custom icons for different project/hotel types
+const createCustomIcon = (
+  color: string,
+  category: string = "project",
+  projectType?: string
+) => {
+  const isHotel = category === "hotel";
+
+  if (isHotel) {
+    // Use hotel emoji for hotels
+    return L.divIcon({
+      html: `
+        <div class="hotel-marker" style="
+          font-size: 20px;
+          width: 24px; 
+          height: 24px; 
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        ">${getHotelIcon()}</div>
+      `,
+      className: "custom-marker",
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  } else {
+    // Use project emojis for projects
+    return L.divIcon({
+      html: `
+        <div class="project-marker" style="
+          font-size: 18px;
+          width: 22px; 
+          height: 22px; 
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+          background-color: rgba(255,255,255,0.9);
+          border-radius: 50%;
+          border: 1px solid ${color};
+        ">${getProjectIcon(projectType || "")}</div>
+      `,
+      className: "custom-marker",
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+    });
+  }
 };
 
 // Type definitions
@@ -87,6 +156,8 @@ const iranMask = iranMaskRaw as FeatureCollection;
 
 export const IranMapContainer = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addHotelModalOpen, setAddHotelModalOpen] = useState(false);
+  const [selectionModalOpen, setSelectionModalOpen] = useState(false);
   const [selectedAddProvince, setSelectedAddProvince] =
     useState<Province | null>(null);
   const [fields, setFields] = useState<Field[]>([{ label: "", value: "" }]);
@@ -99,6 +170,8 @@ export const IranMapContainer = () => {
   const [tab, setTab] = useState(0);
   const [projectName, setProjectName] = useState<string>("");
   const [projectType, setProjectType] = useState<string>("");
+  const [hotelName, setHotelName] = useState<string>("");
+  const [hotelType, setHotelType] = useState<string>("");
   const [clickCoordinates, setClickCoordinates] = useState<
     [number, number] | null
   >(null);
@@ -128,6 +201,16 @@ export const IranMapContainer = () => {
     }
   }, [addModalOpen]);
 
+  React.useEffect(() => {
+    if (!addHotelModalOpen) {
+      setFields([{ label: "", value: "" }]);
+      setSelectedAddProvince(null);
+      setHotelName("");
+      setHotelType("");
+      setClickCoordinates(null);
+    }
+  }, [addHotelModalOpen]);
+
   const handleFieldChange = (idx, key, val) => {
     setFields((fields) =>
       fields.map((f, i) => (i === idx ? { ...f, [key]: val } : f))
@@ -155,8 +238,24 @@ export const IranMapContainer = () => {
     if (provinceInfo && event?.latlng) {
       setSelectedAddProvince(provinceInfo.province);
       setClickCoordinates([event.latlng.lat, event.latlng.lng]);
-      setAddModalOpen(true);
+      setSelectionModalOpen(true);
     }
+  };
+
+  const handleOpenProjectModal = () => {
+    setSelectionModalOpen(false);
+    setAddModalOpen(true);
+  };
+
+  const handleOpenHotelModal = () => {
+    setSelectionModalOpen(false);
+    setAddHotelModalOpen(true);
+  };
+
+  const handleCloseSelectionModal = () => {
+    setSelectionModalOpen(false);
+    setSelectedAddProvince(null);
+    setClickCoordinates(null);
   };
 
   const handleCloseModal = () => {
@@ -164,6 +263,14 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setProjectName("");
     setProjectType("");
+    setClickCoordinates(null);
+  };
+
+  const handleCloseHotelModal = () => {
+    setAddHotelModalOpen(false);
+    setSelectedAddProvince(null);
+    setHotelName("");
+    setHotelType("");
     setClickCoordinates(null);
   };
 
@@ -241,8 +348,12 @@ export const IranMapContainer = () => {
   styleSheet.innerText = `
     .leaflet-interactive:focus { outline: none !important; }
     .project-marker:hover {
-      transform: scale(1.2);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4) !important;
+      transform: scale(1.3);
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) !important;
+    }
+    .hotel-marker:hover {
+      transform: scale(1.3);
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) !important;
     }
     .custom-marker {
       z-index: 1000;
@@ -276,6 +387,7 @@ export const IranMapContainer = () => {
       name: projectName.trim(),
       type: projectType.trim(),
       coordinates: clickCoordinates,
+      category: "project", // Add category to distinguish from hotels
     };
     addProvinceInfo(selectedAddProvince, projectData, filteredFields);
 
@@ -289,6 +401,39 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setProjectName("");
     setProjectType("");
+    setClickCoordinates(null);
+  };
+
+  const handleAddHotelInfo = () => {
+    if (
+      !selectedAddProvince ||
+      !hotelName.trim() ||
+      !hotelType.trim() ||
+      !clickCoordinates
+    )
+      return;
+    const filteredFields = fields.filter((f) => f.label && f.value !== "");
+    if (filteredFields.length === 0) return;
+
+    // Store hotel data with type and coordinates
+    const hotelData = {
+      name: hotelName.trim(),
+      type: hotelType.trim(),
+      coordinates: clickCoordinates,
+      category: "hotel", // Add category to distinguish from projects
+    };
+    addProvinceInfo(selectedAddProvince, hotelData, filteredFields);
+
+    // Close add modal and open info modal to show the created data
+    setAddHotelModalOpen(false);
+    setSelectedProvince(selectedAddProvince);
+    setInfoModalOpen(true);
+
+    // Reset the add form
+    setFields([{ label: "", value: "" }]);
+    setSelectedAddProvince(null);
+    setHotelName("");
+    setHotelType("");
     setClickCoordinates(null);
   };
 
@@ -308,31 +453,33 @@ export const IranMapContainer = () => {
     }
   };
 
-  // Get all projects from all provinces to display as markers
+  // Get all projects and hotels from all provinces to display as markers
   const allProjects = useMemo(() => {
-    const projects: Array<{
+    const items: Array<{
       id: string;
       name: string;
       type: string;
       coordinates: [number, number];
       provinceName: string;
+      category: string;
     }> = [];
 
     provinceInfoList.forEach((provinceInfo) => {
-      provinceInfo.projects.forEach((project, index) => {
-        if (project.coordinates) {
-          projects.push({
+      provinceInfo.projects.forEach((item, index) => {
+        if (item.coordinates) {
+          items.push({
             id: `${provinceInfo.province.id}-${index}`,
-            name: project.name,
-            type: project.type,
-            coordinates: project.coordinates,
+            name: item.name,
+            type: item.type,
+            coordinates: item.coordinates,
             provinceName: provinceInfo.province.name_fa,
+            category: item.category || "project", // Default to project for backward compatibility
           });
         }
       });
     });
 
-    return projects;
+    return items;
   }, [provinceInfoList]);
 
   return (
@@ -366,19 +513,23 @@ export const IranMapContainer = () => {
           style={style}
         />
 
-        {/* Project markers */}
-        {allProjects.map((project) => (
-          <Marker
-            key={project.id}
-            position={project.coordinates}
-            icon={createCustomIcon(
-              projectTypeColors[project.type] || "#757575"
-            )}
-            eventHandlers={{
-              click: () => handleMarkerClick(project.id),
-            }}
-          ></Marker>
-        ))}
+        {/* Project and Hotel markers */}
+        {allProjects.map((item) => {
+          const isHotel = item.category === "hotel";
+          const colorMap = isHotel ? hotelTypeColors : projectTypeColors;
+          const iconColor = colorMap[item.type] || "#757575";
+
+          return (
+            <Marker
+              key={item.id}
+              position={item.coordinates}
+              icon={createCustomIcon(iconColor, item.category, item.type)}
+              eventHandlers={{
+                click: () => handleMarkerClick(item.id),
+              }}
+            ></Marker>
+          );
+        })}
       </MapContainer>
 
       <Box
@@ -416,7 +567,7 @@ export const IranMapContainer = () => {
         </Tooltip>
       </Box>
 
-      {/* Legend for project types */}
+      {/* Legend for project and hotel types */}
       {allProjects.length > 0 && (
         <Box
           sx={{
@@ -428,34 +579,73 @@ export const IranMapContainer = () => {
             borderRadius: 2,
             boxShadow: 2,
             zIndex: 1000,
-            maxWidth: 250,
+            maxWidth: 280,
           }}
         >
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            راهنمای نوع پروژه‌ها
+            راهنمای نوع پروژه‌ها و اقامتگاه‌ها
           </Typography>
+
+          {/* Project Types */}
           {Object.entries(projectTypeColors).map(([type, color]) => {
             const hasProjectsOfThisType = allProjects.some(
-              (p) => p.type === type
+              (p) => p.type === type && p.category !== "hotel"
             );
             if (!hasProjectsOfThisType) return null;
 
             return (
               <Box
-                key={type}
+                key={`project-${type}`}
                 sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
               >
                 <Box
                   sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    bgcolor: color,
-                    border: "2px solid white",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                    width: 20,
+                    height: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     mr: 1,
+                    fontSize: "14px",
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    borderRadius: "50%",
+                    border: `1px solid ${color}`,
                   }}
-                />
+                >
+                  {getProjectIcon(type)}
+                </Box>
+                <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
+                  {type}
+                </Typography>
+              </Box>
+            );
+          })}
+
+          {/* Hotel Types */}
+          {Object.entries(hotelTypeColors).map(([type, color]) => {
+            const hasHotelsOfThisType = allProjects.some(
+              (p) => p.type === type && p.category === "hotel"
+            );
+            if (!hasHotelsOfThisType) return null;
+
+            return (
+              <Box
+                key={`hotel-${type}`}
+                sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
+              >
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mr: 1,
+                    fontSize: "16px",
+                  }}
+                >
+                  {getHotelIcon()}
+                </Box>
                 <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
                   {type}
                 </Typography>
@@ -464,6 +654,56 @@ export const IranMapContainer = () => {
           })}
         </Box>
       )}
+
+      {/* Province Selection Modal */}
+      <Modal
+        open={selectionModalOpen}
+        onClose={handleCloseSelectionModal}
+        aria-labelledby="selection-modal"
+        sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            p: 4,
+            borderRadius: 2,
+            minWidth: 400,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 3 }}>
+            {selectedAddProvince?.name_fa}
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+            چه چیزی می‌خواهید اضافه کنید؟
+          </Typography>
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenProjectModal}
+              sx={{ minWidth: 120 }}
+            >
+              افزودن پروژه
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleOpenHotelModal}
+              sx={{ minWidth: 120 }}
+            >
+              افزودن اماکن
+            </Button>
+          </Box>
+          <Button
+            onClick={handleCloseSelectionModal}
+            color="error"
+            sx={{ mt: 2 }}
+          >
+            بستن
+          </Button>
+        </Box>
+      </Modal>
 
       <ProvinceInfoModal
         open={infoModalOpen}
@@ -492,6 +732,23 @@ export const IranMapContainer = () => {
         onRemoveField={handleRemoveField}
         onSave={handleAddProvinceInfo}
         indexes={indexes}
+      />
+
+      <AddHotelModal
+        open={addHotelModalOpen}
+        onClose={handleCloseHotelModal}
+        provinceList={provinceInfoList.map((info) => info.province)}
+        selectedProvince={selectedAddProvince}
+        setSelectedProvince={setSelectedAddProvince}
+        hotelName={hotelName}
+        setHotelName={setHotelName}
+        hotelType={hotelType}
+        setHotelType={setHotelType}
+        fields={fields}
+        onFieldChange={handleFieldChange}
+        onAddField={handleAddField}
+        onRemoveField={handleRemoveField}
+        onSave={handleAddHotelInfo}
       />
 
       <ManageIndexesModal

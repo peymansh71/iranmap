@@ -30,6 +30,12 @@ const ProvinceInfoModal = ({
   const hasProjects = provinceInfo?.projects?.length > 0;
   const projects = provinceInfo?.projects || [];
 
+  // Separate projects and hotels
+  const actualProjects = projects.filter((p) => p.category !== "hotel");
+  const hotels = projects.filter((p) => p.category === "hotel");
+  const hasActualProjects = actualProjects.length > 0;
+  const hasHotels = hotels.length > 0;
+
   // Reset selected project when modal opens or province changes
   useEffect(() => {
     if (open && hasProjects) {
@@ -40,7 +46,7 @@ const ProvinceInfoModal = ({
       ) {
         setSelectedProject(selectedProjectName);
       } else {
-        // Otherwise select the first project
+        // Otherwise select the first project or hotel
         setSelectedProject(projects[0]?.name || "");
       }
     } else {
@@ -50,6 +56,7 @@ const ProvinceInfoModal = ({
 
   const currentProject = projects.find((p) => p.name === selectedProject);
   const hasData = currentProject?.fields?.length > 0;
+  const isCurrentHotel = currentProject?.category === "hotel";
 
   // Create a compatible data structure for the existing components
   const compatibleProvinceInfo = currentProject
@@ -60,6 +67,28 @@ const ProvinceInfoModal = ({
         projectType: currentProject.type,
       }
     : null;
+
+  // Get appropriate label for the dropdown
+  const getDropdownLabel = () => {
+    if (hasActualProjects && hasHotels) {
+      return "انتخاب پروژه یا اقامتگاه";
+    } else if (hasHotels) {
+      return "انتخاب اقامتگاه";
+    } else {
+      return "انتخاب پروژه";
+    }
+  };
+
+  // Get appropriate empty message
+  const getEmptyMessage = () => {
+    if (hasActualProjects && hasHotels) {
+      return "هیچ پروژه یا اقامتگاهی برای این استان ثبت نشده است";
+    } else if (hasHotels && !hasActualProjects) {
+      return "هیچ اقامتگاهی برای این استان ثبت نشده است";
+    } else {
+      return "هیچ پروژه‌ای برای این استان ثبت نشده است";
+    }
+  };
 
   return (
     <Modal
@@ -125,19 +154,53 @@ const ProvinceInfoModal = ({
 
         {hasProjects && (
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>انتخاب پروژه</InputLabel>
+            <InputLabel>{getDropdownLabel()}</InputLabel>
             <Select
               value={selectedProject}
-              label="انتخاب پروژه"
+              label={getDropdownLabel()}
               onChange={(e) => setSelectedProject(e.target.value)}
             >
-              {projects.map((project) => (
+              {actualProjects.length > 0 && (
+                <Typography
+                  variant="overline"
+                  sx={{ px: 2, color: "text.secondary" }}
+                >
+                  پروژه‌ها
+                </Typography>
+              )}
+              {actualProjects.map((project) => (
                 <MenuItem key={project.name} value={project.name}>
-                  {project.name} - {project.type}
+                  🏗️ {project.name} - {project.type}
+                </MenuItem>
+              ))}
+              {hotels.length > 0 && actualProjects.length > 0 && (
+                <Typography
+                  variant="overline"
+                  sx={{ px: 2, color: "text.secondary", mt: 1 }}
+                >
+                  اقامتگاه‌ها
+                </Typography>
+              )}
+              {hotels.map((hotel) => (
+                <MenuItem key={hotel.name} value={hotel.name}>
+                  🏨 {hotel.name} - {hotel.type}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
+        )}
+
+        {/* Show current selection info */}
+        {currentProject && (
+          <Box sx={{ mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+            <Typography variant="subtitle2" color="primary">
+              {isCurrentHotel ? "🏨 اقامتگاه:" : "🏗️ پروژه:"}{" "}
+              <strong>{currentProject.name}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              نوع: {currentProject.type}
+            </Typography>
+          </Box>
         )}
 
         <Divider />
@@ -152,11 +215,12 @@ const ProvinceInfoModal = ({
         >
           {!hasProjects ? (
             <Typography variant="h6" color="text.secondary" align="center">
-              هیچ پروژه‌ای برای این استان ثبت نشده است
+              {getEmptyMessage()}
             </Typography>
           ) : !hasData ? (
             <Typography variant="h6" color="text.secondary" align="center">
-              اطلاعاتی برای این پروژه ثبت نشده است
+              اطلاعاتی برای این {isCurrentHotel ? "اقامتگاه" : "پروژه"} ثبت نشده
+              است
             </Typography>
           ) : (
             <>

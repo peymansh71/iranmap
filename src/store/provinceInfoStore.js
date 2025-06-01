@@ -94,6 +94,8 @@ const migrateProvinceData = (existingData) => {
             ? [
                 {
                   name: "پروژه قدیم", // Default name for migrated data
+                  type: "ابنیه", // Default type for migrated data
+                  category: "project", // Default category
                   fields: existingProvince.fields,
                 },
               ]
@@ -101,9 +103,17 @@ const migrateProvinceData = (existingData) => {
       };
     }
 
+    // Add category to existing projects if missing
+    const updatedProjects = (existingProvince?.projects || []).map(
+      (project) => ({
+        ...project,
+        category: project.category || "project", // Default to project if category is missing
+      })
+    );
+
     return {
       province,
-      projects: existingProvince?.projects || [],
+      projects: updatedProjects,
     };
   });
 };
@@ -128,6 +138,7 @@ const useProvinceInfoStore = create(
                   name: project.name,
                   type: project.type,
                   coordinates: project.coordinates,
+                  category: project.category || "project",
                   fields,
                 };
                 return { ...info, projects: updatedProjects };
@@ -141,6 +152,7 @@ const useProvinceInfoStore = create(
                       name: project.name,
                       type: project.type,
                       coordinates: project.coordinates,
+                      category: project.category || "project",
                       fields,
                     },
                   ],
@@ -163,7 +175,7 @@ const useProvinceInfoStore = create(
       name: "province-info-storage",
       // Add migration function to the persist middleware
       migrate: (persistedState, version) => {
-        if (version < 2) {
+        if (version < 3) {
           return {
             ...persistedState,
             provinceInfoList: migrateProvinceData(
@@ -173,7 +185,7 @@ const useProvinceInfoStore = create(
         }
         return persistedState;
       },
-      version: 2, // Increment version to trigger migration
+      version: 3, // Increment version to trigger migration
     }
   )
 );
