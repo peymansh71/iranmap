@@ -1,5 +1,6 @@
 import React from "react";
 import ReactECharts from "echarts-for-react";
+import { Box, Typography } from "@mui/material";
 
 const ProvincePieChart = ({ provinceInfo }) => {
   if (!provinceInfo) return null;
@@ -10,6 +11,18 @@ const ProvincePieChart = ({ provinceInfo }) => {
   }));
 
   const option = {
+    title: {
+      text: provinceInfo.projectName
+        ? `پروژه: ${provinceInfo.projectName}`
+        : "",
+      left: "center",
+      top: 20,
+      textStyle: {
+        fontFamily: "inherit",
+        fontSize: 16,
+        fontWeight: "bold",
+      },
+    },
     tooltip: {
       trigger: "item",
       formatter: "{b}: {c}",
@@ -27,9 +40,10 @@ const ProvincePieChart = ({ provinceInfo }) => {
     },
     series: [
       {
-        name: "اطلاعات استان",
+        name: "اطلاعات پروژه",
         type: "pie",
         radius: "60%",
+        center: ["50%", "55%"],
         data: pieData,
         emphasis: {
           itemStyle: {
@@ -43,7 +57,9 @@ const ProvincePieChart = ({ provinceInfo }) => {
   };
 
   return (
-    <ReactECharts option={option} style={{ height: "100%", width: 500 }} />
+    <Box sx={{ width: "100%", height: "100%" }}>
+      <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />
+    </Box>
   );
 };
 

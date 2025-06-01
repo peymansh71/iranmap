@@ -64,10 +64,10 @@ const allProvinces = [
   { id: "Yazd", name_fa: "یزد", name_en: "Yazd" },
 ];
 
-// Initialize province info with empty fields for all provinces
+// Initialize province info with empty projects for all provinces
 const initialProvinceInfo = allProvinces.map((province) => ({
   province,
-  fields: [],
+  projects: [], // Changed from fields to projects
 }));
 
 // Migration function to fix existing data
@@ -85,9 +85,25 @@ const migrateProvinceData = (existingData) => {
       return item.province?.id === province.id;
     });
 
+    // Migrate old structure to new project-based structure
+    if (existingProvince?.fields && !existingProvince?.projects) {
+      return {
+        province,
+        projects:
+          existingProvince.fields.length > 0
+            ? [
+                {
+                  name: "پروژه قدیم", // Default name for migrated data
+                  fields: existingProvince.fields,
+                },
+              ]
+            : [],
+      };
+    }
+
     return {
       province,
-      fields: existingProvince?.fields || [],
+      projects: existingProvince?.projects || [],
     };
   });
 };
@@ -96,11 +112,33 @@ const useProvinceInfoStore = create(
   persist(
     (set, get) => ({
       provinceInfoList: initialProvinceInfo,
-      addProvinceInfo: (province, fields) =>
+      addProvinceInfo: (province, project, fields) =>
         set((state) => ({
-          provinceInfoList: state.provinceInfoList.map((info) =>
-            info.province.id === province.id ? { ...info, fields } : info
-          ),
+          provinceInfoList: state.provinceInfoList.map((info) => {
+            if (info.province.id === province.id) {
+              // Check if project already exists
+              const existingProjectIndex = info.projects.findIndex(
+                (p) => p.name === project.name
+              );
+
+              if (existingProjectIndex >= 0) {
+                // Update existing project
+                const updatedProjects = [...info.projects];
+                updatedProjects[existingProjectIndex] = {
+                  name: project.name,
+                  fields,
+                };
+                return { ...info, projects: updatedProjects };
+              } else {
+                // Add new project
+                return {
+                  ...info,
+                  projects: [...info.projects, { name: project.name, fields }],
+                };
+              }
+            }
+            return info;
+          }),
         })),
       getProvinceInfoByName: (provinceId) => {
         const state = get();
@@ -115,7 +153,7 @@ const useProvinceInfoStore = create(
       name: "province-info-storage",
       // Add migration function to the persist middleware
       migrate: (persistedState, version) => {
-        if (version === 0) {
+        if (version < 2) {
           return {
             ...persistedState,
             provinceInfoList: migrateProvinceData(
@@ -125,7 +163,7 @@ const useProvinceInfoStore = create(
         }
         return persistedState;
       },
-      version: 1, // Increment version to trigger migration
+      version: 2, // Increment version to trigger migration
     }
   )
 );

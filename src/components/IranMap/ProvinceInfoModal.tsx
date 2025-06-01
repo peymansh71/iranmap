@@ -1,5 +1,15 @@
-import React from "react";
-import { Modal, Box, Typography, IconButton, Divider } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  Box,
+  Typography,
+  IconButton,
+  Divider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PieChartIcon from "@mui/icons-material/PieChart";
@@ -8,7 +18,31 @@ import ProvincePieChart from "./components/ProvincePieChart.tsx";
 import ProvinceBarChart from "./components/ProvinceBarChart.tsx";
 
 const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
-  const hasData = provinceInfo?.fields?.length > 0;
+  const [selectedProject, setSelectedProject] = useState("");
+
+  const hasProjects = provinceInfo?.projects?.length > 0;
+  const projects = provinceInfo?.projects || [];
+
+  // Reset selected project when modal opens or province changes
+  useEffect(() => {
+    if (open && hasProjects) {
+      setSelectedProject(projects[0]?.name || "");
+    } else {
+      setSelectedProject("");
+    }
+  }, [open, provinceInfo, hasProjects]);
+
+  const currentProject = projects.find((p) => p.name === selectedProject);
+  const hasData = currentProject?.fields?.length > 0;
+
+  // Create a compatible data structure for the existing components
+  const compatibleProvinceInfo = currentProject
+    ? {
+        ...provinceInfo,
+        fields: currentProject.fields,
+        projectName: currentProject.name,
+      }
+    : null;
 
   return (
     <Modal
@@ -29,8 +63,8 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 600,
-          height: 600,
+          width: 700,
+          height: 650,
           bgcolor: "background.paper",
           boxShadow: 24,
           p: 4,
@@ -45,6 +79,7 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
             justifyContent: "space-between",
             alignItems: "center",
             width: "100%",
+            mb: 2,
           }}
         >
           <Box>
@@ -70,6 +105,24 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
             {provinceInfo?.province?.name_fa || "استانی انتخاب نشده است"}
           </Typography>
         </Box>
+
+        {hasProjects && (
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>انتخاب پروژه</InputLabel>
+            <Select
+              value={selectedProject}
+              label="انتخاب پروژه"
+              onChange={(e) => setSelectedProject(e.target.value)}
+            >
+              {projects.map((project) => (
+                <MenuItem key={project.name} value={project.name}>
+                  {project.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
         <Divider />
         <Box
           sx={{
@@ -78,18 +131,27 @@ const ProvinceInfoModal = ({ open, onClose, provinceInfo, tab, setTab }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
           }}
         >
-          {!hasData ? (
+          {!hasProjects ? (
             <Typography variant="h6" color="text.secondary" align="center">
-              اطلاعاتی برای این استان ثبت نشده است
+              هیچ پروژه‌ای برای این استان ثبت نشده است
+            </Typography>
+          ) : !hasData ? (
+            <Typography variant="h6" color="text.secondary" align="center">
+              اطلاعاتی برای این پروژه ثبت نشده است
             </Typography>
           ) : (
             <>
-              {tab === 0 && <ProvinceTable provinceInfo={provinceInfo} />}
-              {tab === 1 && <ProvincePieChart provinceInfo={provinceInfo} />}
-              {tab === 2 && <ProvinceBarChart provinceInfo={provinceInfo} />}
+              {tab === 0 && (
+                <ProvinceTable provinceInfo={compatibleProvinceInfo} />
+              )}
+              {tab === 1 && (
+                <ProvincePieChart provinceInfo={compatibleProvinceInfo} />
+              )}
+              {tab === 2 && (
+                <ProvinceBarChart provinceInfo={compatibleProvinceInfo} />
+              )}
             </>
           )}
         </Box>

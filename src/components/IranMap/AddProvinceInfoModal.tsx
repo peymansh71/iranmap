@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   Box,
@@ -6,6 +6,9 @@ import {
   Button,
   TextField,
   IconButton,
+  Stepper,
+  Step,
+  StepLabel,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
@@ -13,11 +16,6 @@ import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 interface Province {
   id: number;
   name_fa: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
 }
 
 interface Field {
@@ -31,9 +29,8 @@ interface AddProvinceInfoModalProps {
   provinceList: Province[];
   selectedProvince: Province | null;
   setSelectedProvince: (province: Province | null) => void;
-  projectList: Project[];
-  selectedProject: Project | null;
-  setSelectedProject: (project: Project | null) => void;
+  projectName: string;
+  setProjectName: (projectName: string) => void;
   fields: Field[];
   onFieldChange: (idx: number, key: string, val: string) => void;
   onAddField: () => void;
@@ -42,112 +39,210 @@ interface AddProvinceInfoModalProps {
   indexes: string[];
 }
 
+const steps = ["اطلاعات پروژه", "شاخص‌های پروژه"];
+
 const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
   open,
   onClose,
   provinceList,
   selectedProvince,
   setSelectedProvince,
-  projectList,
-  selectedProject,
-  setSelectedProject,
+  projectName,
+  setProjectName,
   fields,
   onFieldChange,
   onAddField,
   onRemoveField,
   onSave,
   indexes,
-}) => (
-  <Modal
-    open={open}
-    onClose={onClose}
-    aria-labelledby="add-info-modal"
-    sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-  >
-    <Box
-      sx={{
-        bgcolor: "background.paper",
-        p: 4,
-        borderRadius: 2,
-        minWidth: 600,
-        maxWidth: 800,
-      }}
-    >
-      <Typography variant="h6" sx={{ mb: 2, textAlign: "center" }}>
-        افزودن اطلاعات
-      </Typography>
-      <Autocomplete
-        options={provinceList}
-        value={selectedProvince}
-        onChange={(_, newValue) => {
-          setSelectedProvince(newValue);
-          setSelectedProject(null); // Reset project when province changes
-        }}
-        getOptionLabel={(option) => option.name_fa}
-        renderInput={(params) => (
-          <TextField {...params} label="انتخاب استان" variant="outlined" />
-        )}
-        sx={{ mb: 2 }}
-        fullWidth
-      />
-      {selectedProvince && (
-        <Autocomplete
-          options={projectList}
-          value={selectedProject}
-          onChange={(_, newValue) => setSelectedProject(newValue)}
-          getOptionLabel={(option) => option?.name || ""}
-          renderInput={(params) => (
-            <TextField {...params} label="انتخاب پروژه" variant="outlined" />
-          )}
-          sx={{ mb: 2 }}
-          fullWidth
-        />
-      )}
-      {selectedProvince && selectedProject && (
-        <>
-          {fields.map((field, idx) => (
-            <Box
-              key={idx}
-              sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
-            >
-              <Autocomplete
-                options={indexes}
-                value={field.label}
-                onChange={(_, newValue) =>
-                  onFieldChange(idx, "label", newValue || "")
+}) => {
+  const [activeStep, setActiveStep] = useState(0);
+
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
+  const handleClose = () => {
+    setActiveStep(0); // Reset stepper
+    onClose();
+  };
+
+  const isStep1Valid = selectedProvince && projectName.trim().length > 0;
+  const isStep2Valid = fields.some(
+    (field) => field.label.trim() && field.value.trim() !== ""
+  );
+
+  // Reset stepper when modal opens
+  React.useEffect(() => {
+    if (open) {
+      setActiveStep(0);
+    }
+  }, [open]);
+
+  const renderStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              برای شروع، نام پروژه را وارد کنید
+            </Typography>
+            <Autocomplete
+              options={provinceList}
+              value={selectedProvince}
+              onChange={(_, newValue) => {
+                setSelectedProvince(newValue);
+                if (newValue?.id !== selectedProvince?.id) {
+                  setProjectName(""); // Only reset project name when province actually changes
                 }
-                renderInput={(params) => (
-                  <TextField {...params} label="شاخص" variant="outlined" />
-                )}
-                sx={{ flex: 2 }}
-              />
-              <TextField
-                label="مقدار"
-                type="number"
-                value={field.value}
-                onChange={(e) => onFieldChange(idx, "value", e.target.value)}
-                sx={{ flex: 1 }}
-              />
-              <IconButton onClick={() => onRemoveField(idx)} color="error">
-                <DeleteIcon />
-              </IconButton>
-            </Box>
+              }}
+              getOptionLabel={(option) => option.name_fa}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="انتخاب استان"
+                  variant="outlined"
+                />
+              )}
+              sx={{ mb: 2 }}
+              fullWidth
+              disabled={!!selectedProvince} // Disable if province is already selected (from map click)
+            />
+            <TextField
+              label="نام پروژه"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              variant="outlined"
+              sx={{ mb: 2 }}
+              fullWidth
+              placeholder="نام پروژه را وارد کنید"
+              required
+            />
+          </Box>
+        );
+      case 1:
+        return (
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              استان: <strong>{selectedProvince?.name_fa}</strong> | پروژه:{" "}
+              <strong>{projectName}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              حداقل یک شاخص با مقدار معتبر وارد کنید
+            </Typography>
+            {fields.map((field, idx) => (
+              <Box
+                key={idx}
+                sx={{ display: "flex", gap: 1, mb: 1, alignItems: "center" }}
+              >
+                <Autocomplete
+                  options={indexes}
+                  value={field.label}
+                  onChange={(_, newValue) =>
+                    onFieldChange(idx, "label", newValue || "")
+                  }
+                  renderInput={(params) => (
+                    <TextField {...params} label="شاخص" variant="outlined" />
+                  )}
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  label="مقدار"
+                  type="number"
+                  value={field.value}
+                  onChange={(e) => onFieldChange(idx, "value", e.target.value)}
+                  sx={{ flex: 1 }}
+                />
+                <IconButton
+                  onClick={() => onRemoveField(idx)}
+                  color="error"
+                  disabled={fields.length === 1}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Button startIcon={<AddIcon />} onClick={onAddField} sx={{ mb: 2 }}>
+              افزودن شاخص
+            </Button>
+          </Box>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      aria-labelledby="add-info-modal"
+      sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
+      <Box
+        sx={{
+          bgcolor: "background.paper",
+          p: 4,
+          borderRadius: 2,
+          minWidth: 700,
+          maxWidth: 900,
+        }}
+      >
+        <Typography variant="h6" sx={{ mb: 3, textAlign: "center" }}>
+          افزودن اطلاعات پروژه
+        </Typography>
+
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
           ))}
-          <Button startIcon={<AddIcon />} onClick={onAddField} sx={{ mb: 2 }}>
-            افزودن شاخص
-          </Button>
-        </>
-      )}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2, gap: 1 }}>
-        <Button onClick={onSave} variant="contained" color="primary">
-          ذخیره
-        </Button>
-        <Button onClick={onClose} color="error">
-          بستن
-        </Button>
+        </Stepper>
+
+        {renderStepContent(activeStep)}
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+          <Box>
+            <Button onClick={handleClose} color="error">
+              بستن
+            </Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              disabled={activeStep === 0}
+              onClick={handleBack}
+              variant="outlined"
+            >
+              قبلی
+            </Button>
+            {activeStep === steps.length - 1 ? (
+              <Button
+                onClick={onSave}
+                variant="contained"
+                color="primary"
+                disabled={!isStep2Valid}
+              >
+                ذخیره
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                variant="contained"
+                disabled={activeStep === 0 && !isStep1Valid}
+              >
+                بعدی
+              </Button>
+            )}
+          </Box>
+        </Box>
       </Box>
-    </Box>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export default AddProvinceInfoModal;

@@ -13,7 +13,6 @@ import useProvinceInfoStore from "../../store/provinceInfoStore";
 import ProvinceInfoModal from "./ProvinceInfoModal.tsx";
 import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
 import ManageIndexesModal from "./ManageIndexesModal.tsx";
-import AddIcon from "@mui/icons-material/Add";
 import LogoutIcon from "@mui/icons-material/Logout";
 
 // Type definitions
@@ -21,11 +20,6 @@ interface Province {
   id: number;
   name_fa: string;
   name_en?: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
 }
 
 interface Field {
@@ -37,18 +31,16 @@ const iranProvinces = iranProvincesRaw as FeatureCollection;
 const iranMask = iranMaskRaw as FeatureCollection;
 
 export const IranMapContainer = () => {
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
-    null
-  );
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tab, setTab] = useState(0);
-  const logout = useAuthStore((state) => state.logout);
-  const navigate = useNavigate();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedAddProvince, setSelectedAddProvince] =
     useState<Province | null>(null);
   const [fields, setFields] = useState<Field[]>([{ label: "", value: "" }]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(
+    null
+  );
+  const [tab, setTab] = useState(0);
   const indexes = useIndexesStore((state) => state.indexes);
   const addIndex = useIndexesStore((state) => state.addIndex);
   const removeIndex = useIndexesStore((state) => state.removeIndex);
@@ -63,34 +55,15 @@ export const IranMapContainer = () => {
     (state) => state.getProvinceInfoByName
   );
   const resetStore = useProvinceInfoStore((state) => state.resetStore);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectList, setProjectList] = useState<Project[]>([]);
-
-  // Example: Replace this with your actual project data source
-  // This should be an object mapping province id to array of projects
-  const allProjectsByProvince = useMemo<Record<number, Project[]>>(
-    () => ({
-      // Example structure:
-      // 1: [{ id: 1, name: "پروژه ۱" }, { id: 2, name: "پروژه ۲" }],
-      // 2: [{ id: 3, name: "پروژه ۳" }],
-    }),
-    []
-  );
-
-  useEffect(() => {
-    if (selectedAddProvince && selectedAddProvince.id) {
-      setProjectList(allProjectsByProvince[selectedAddProvince.id] || []);
-      setSelectedProject(null);
-    } else {
-      setProjectList([]);
-      setSelectedProject(null);
-    }
-  }, [selectedAddProvince, allProjectsByProvince]);
+  const [projectName, setProjectName] = useState<string>("");
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     if (!addModalOpen) {
       setFields([{ label: "", value: "" }]);
       setSelectedAddProvince(null);
+      setProjectName("");
     }
   }, [addModalOpen]);
 
@@ -119,13 +92,19 @@ export const IranMapContainer = () => {
     );
 
     if (provinceInfo) {
-      setSelectedProvince(provinceInfo.province);
-      setIsModalOpen(true);
+      setSelectedAddProvince(provinceInfo.province);
+      setAddModalOpen(true);
     }
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
+    setAddModalOpen(false);
+    setSelectedAddProvince(null);
+    setProjectName("");
+  };
+
+  const handleCloseInfoModal = () => {
+    setInfoModalOpen(false);
     setSelectedProvince(null);
   };
 
@@ -151,7 +130,9 @@ export const IranMapContainer = () => {
 
   const style = (feature) => {
     const name = feature.properties.name_en;
-    return selectedProvince?.name_en === name ? highlightStyle : defaultStyle;
+    return selectedAddProvince?.name_en === name
+      ? highlightStyle
+      : defaultStyle;
   };
 
   const onEachProvince = useCallback(
@@ -168,19 +149,19 @@ export const IranMapContainer = () => {
           });
         },
         mouseout: (e) => {
-          if (selectedProvince?.name_en !== name) {
+          if (selectedAddProvince?.name_en !== name) {
             e.target.setStyle(defaultStyle);
           }
         },
       });
     },
-    [selectedProvince, defaultStyle]
+    [selectedAddProvince, defaultStyle]
   );
 
   const selectedProvinceInfo = useMemo(() => {
-    if (!selectedProvince) return null;
-    return getProvinceInfoByName(selectedProvince.id);
-  }, [selectedProvince, getProvinceInfoByName]);
+    if (!selectedAddProvince) return null;
+    return getProvinceInfoByName(selectedAddProvince.id);
+  }, [selectedAddProvince, getProvinceInfoByName]);
 
   // Persian labels
   const persianLabels = {
@@ -188,7 +169,6 @@ export const IranMapContainer = () => {
     area: "مساحت (کیلومتر مربع)",
     density: "تراکم جمعیت",
     manageIndexes: "مدیریت اندیس‌ها",
-    addProvinceInfo: "افزودن اطلاعات ",
     logout: "خروج",
   };
 
@@ -207,12 +187,26 @@ export const IranMapContainer = () => {
   };
 
   const handleAddProvinceInfo = () => {
-    if (!selectedAddProvince || !selectedProject) return;
+    if (!selectedAddProvince || !projectName.trim()) return;
     const filteredFields = fields.filter((f) => f.label && f.value !== "");
     if (filteredFields.length === 0) return;
-    // Store data based on both province and project
-    addProvinceInfo(selectedAddProvince, selectedProject, filteredFields);
+
+    // Store data based on both province and project name
+    addProvinceInfo(
+      selectedAddProvince,
+      { name: projectName.trim() },
+      filteredFields
+    );
+
+    // Close add modal and open info modal to show the created data
     setAddModalOpen(false);
+    setSelectedProvince(selectedAddProvince);
+    setInfoModalOpen(true);
+
+    // Reset the add form
+    setFields([{ label: "", value: "" }]);
+    setSelectedAddProvince(null);
+    setProjectName("");
   };
 
   React.useEffect(() => {
@@ -272,18 +266,6 @@ export const IranMapContainer = () => {
             <SettingsIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title={persianLabels.addProvinceInfo}>
-          <IconButton
-            onClick={() => setAddModalOpen(true)}
-            sx={{
-              bgcolor: "primary.main",
-              color: "white",
-              "&:hover": { bgcolor: "white", color: "primary.main" },
-            }}
-          >
-            <AddIcon />
-          </IconButton>
-        </Tooltip>
         <Tooltip title={persianLabels.logout}>
           <IconButton
             onClick={handleLogout}
@@ -299,22 +281,23 @@ export const IranMapContainer = () => {
       </Box>
 
       <ProvinceInfoModal
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        provinceInfo={selectedProvinceInfo}
+        open={infoModalOpen}
+        onClose={handleCloseInfoModal}
+        provinceInfo={
+          selectedProvince ? getProvinceInfoByName(selectedProvince.id) : null
+        }
         tab={tab}
         setTab={setTab}
       />
 
       <AddProvinceInfoModal
         open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
+        onClose={handleCloseModal}
         provinceList={provinceInfoList.map((info) => info.province)}
         selectedProvince={selectedAddProvince}
         setSelectedProvince={setSelectedAddProvince}
-        projectList={projectList}
-        selectedProject={selectedProject}
-        setSelectedProject={setSelectedProject}
+        projectName={projectName}
+        setProjectName={setProjectName}
         fields={fields}
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}
