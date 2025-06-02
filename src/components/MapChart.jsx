@@ -18,7 +18,7 @@ import { Box, Typography } from "@mui/material";
 // Mock data: population (in thousands) for each province
 const provinceData = {
   Tehran: 13900,
-  Isfahan: 5120,
+  Esfehan: 5120,
   Fars: 4850,
   "Razavi Khorasan": 6430,
   "East Azerbaijan": 3900,
@@ -34,7 +34,7 @@ const provinceData = {
   Yazd: 1130,
   Hormozgan: 1770,
   Markazi: 1420,
-  Ardabil: 1280,
+  Ardebil: 1280,
   Bushehr: 1230,
   Zanjan: 1050,
   Kurdistan: 1600,
@@ -47,7 +47,7 @@ const provinceData = {
   Ilam: 600,
   Golestan: 1860,
   Semnan: 702,
-  "Kohgiluyeh and Boyer-Ahmad": 713,
+  "Kohgiluye va Boyerahmad": 713,
 };
 
 const values = Object.values(provinceData);

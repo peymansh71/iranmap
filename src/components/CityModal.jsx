@@ -27,7 +27,7 @@ const getCityInfo = (cityName) => {
       elevation: "995 m",
       attractions: ["Imam Reza Shrine", "Kooh Sangi", "Tomb of Nader Shah"],
     },
-    Isfahan: {
+    Esfehan: {
       population: "2.2 million",
       area: "551 km²",
       founded: "Ancient",

@@ -231,6 +231,7 @@ export const IranMapContainer = () => {
   };
 
   const handleProvinceClick = (name, event) => {
+    console.log(name, event);
     const provinceInfo = provinceInfoList.find(
       (p) => p.province.name_en === name
     );
