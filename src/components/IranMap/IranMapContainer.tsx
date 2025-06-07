@@ -5,9 +5,16 @@ import {
   Marker,
   Popup,
   Tooltip as LeafletTooltip,
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import type { FeatureCollection } from "geojson";
 import iranProvincesRaw from "./iranProvinces.json";
 import iranMaskRaw from "./iranMask.json"; // The inverse mask layer
@@ -20,6 +27,18 @@ import {
   Typography,
   Modal,
   Button,
+  TextField,
+  InputAdornment,
+  Chip,
+  Autocomplete,
+  CircularProgress,
+  Skeleton,
+  Alert,
+  Snackbar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
@@ -29,7 +48,20 @@ import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
 import AddHotelModal from "./AddHotelModal.tsx";
 import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
+import GetAppIcon from "@mui/icons-material/GetApp";
+import TableViewIcon from "@mui/icons-material/TableView";
 import L from "leaflet";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import HotelIcon from "@mui/icons-material/Hotel";
+import ConstructionIcon from "@mui/icons-material/Construction";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 
 // Fix Leaflet default icon issue with webpack - safer approach
 try {
@@ -66,8 +98,8 @@ const hotelTypeColors: Record<string, string> = {
 
 // Get hotel icon emoji - you can easily change this
 const getHotelIcon = () => {
-  // Options: 🏨 🏩 🛏️ 🏠 🏘️ 🏖️
-  return "🛏️"; // Currently using hotel emoji
+  // Options: 🏨 🏩 🛏️ �� 🏘️ 🏖️
+  return "🏨"; // Using hotel emoji for better visual appeal
 };
 
 // Get project icon emoji based on project type
@@ -141,7 +173,14 @@ const createCustomIcon = (
           background-color: rgba(255,255,255,0.9);
           border-radius: 50%;
           border: 1px solid ${color};
-        ">${getProjectIcon(projectType || "")}</div>
+          position: relative;
+        ">${getProjectIcon(projectType || "")}
+          ${
+            isActive
+              ? '<div class="active-indicator"></div>'
+              : '<div class="inactive-indicator"></div>'
+          }
+        </div>
       `,
       className: "custom-marker",
       iconSize: [22, 22],
@@ -184,7 +223,24 @@ export const IranMapContainer = () => {
   const [hotelName, setHotelName] = useState<string>("");
   const [hotelType, setHotelType] = useState<string>("");
   const [hotelIsActive, setHotelIsActive] = useState<boolean>(true);
+  const [projectIsActive, setProjectIsActive] = useState<boolean>(true);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]); // For filtering
+  const [searchQuery, setSearchQuery] = useState<string>(""); // For search functionality
+  const [searchResults, setSearchResults] = useState<any[]>([]); // Search results
+  const [loading, setLoading] = useState<boolean>(false); // Loading state
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info";
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [dashboardOpen, setDashboardOpen] = useState<boolean>(false);
   const [clickCoordinates, setClickCoordinates] = useState<
     [number, number] | null
   >(null);
@@ -210,6 +266,7 @@ export const IranMapContainer = () => {
       setSelectedAddProvince(null);
       setProjectName("");
       setProjectType("");
+      setProjectIsActive(true);
       setClickCoordinates(null);
     }
   }, [addModalOpen]);
@@ -278,6 +335,7 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setProjectName("");
     setProjectType("");
+    setProjectIsActive(true);
     setClickCoordinates(null);
   };
 
@@ -439,7 +497,8 @@ export const IranMapContainer = () => {
       name: projectName.trim(),
       type: projectType.trim(),
       coordinates: clickCoordinates,
-      category: "project", // Add category to distinguish from hotels
+      category: "project",
+      isActive: projectIsActive,
     };
     addProvinceInfo(selectedAddProvince, projectData, filteredFields);
 
@@ -453,6 +512,7 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setProjectName("");
     setProjectType("");
+    setProjectIsActive(true);
     setClickCoordinates(null);
   };
 
@@ -568,6 +628,356 @@ export const IranMapContainer = () => {
     return selectedTypes.includes(typeKey);
   };
 
+  // Search functionality
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const results = allProjects
+      .filter(
+        (item) =>
+          item.name.toLowerCase().includes(query.toLowerCase()) ||
+          item.type.toLowerCase().includes(query.toLowerCase()) ||
+          item.provinceName.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 10); // Limit to 10 results
+
+    setSearchResults(results);
+  };
+
+  // Auto-zoom to province or search result
+  const AutoZoomComponent = ({ target }: { target: any }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      if (target?.coordinates) {
+        map.setView(target.coordinates, 10, { animate: true, duration: 1 });
+      } else if (target?.province) {
+        // Find province bounds and zoom to it
+        const province = iranProvinces.features.find(
+          (f) =>
+            f.properties && f.properties.name_en === target.province.name_en
+        );
+        if (province?.geometry) {
+          const bounds = L.geoJSON(province).getBounds();
+          map.fitBounds(bounds, {
+            padding: [20, 20],
+            animate: true,
+            duration: 1,
+          });
+        }
+      }
+    }, [map, target]);
+
+    return null;
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case "n":
+            e.preventDefault();
+            // Open project modal (you'd need to select a province first)
+            break;
+          case "h":
+            e.preventDefault();
+            // Open hotel modal (you'd need to select a province first)
+            break;
+          case "f":
+            e.preventDefault();
+            // Focus search
+            const searchInput = document.querySelector(
+              "#search-input"
+            ) as HTMLInputElement;
+            searchInput?.focus();
+            break;
+        }
+      }
+      if (e.key === "Escape") {
+        // Close modals and dashboard
+        setAddModalOpen(false);
+        setAddHotelModalOpen(false);
+        setInfoModalOpen(false);
+        setSelectionModalOpen(false);
+        setSettingsOpen(false);
+        setDashboardOpen(false);
+        // Clear search
+        setSearchQuery("");
+        setSearchResults([]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Handle search result click
+  const handleSearchResultClick = (item: any) => {
+    setSearchQuery("");
+    setSearchResults([]);
+    // Find and open the province info modal
+    const provinceInfo = provinceInfoList.find(
+      (p) => p.province.name_fa === item.provinceName
+    );
+    if (provinceInfo) {
+      setSelectedProvince(provinceInfo.province);
+      setSelectedProjectName(item.name);
+      setInfoModalOpen(true);
+    }
+  };
+
+  // Export functionality
+  const exportToCSV = () => {
+    const csvContent = [
+      ["نام", "نوع", "دسته", "استان", "وضعیت", "مختصات عرض", "مختصات طول"],
+      ...allProjects.map((item) => [
+        item.name,
+        item.type,
+        item.category === "hotel" ? "اقامتگاه" : "پروژه",
+        item.provinceName,
+        item.isActive ? "فعال" : "غیرفعال",
+        item.coordinates[0],
+        item.coordinates[1],
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `iran-map-data-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showNotification("داده‌ها با موفقیت به فرمت CSV صادر شد", "success");
+    setExportMenuAnchor(null);
+  };
+
+  const exportToJSON = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      totalProjects: allProjects.filter((p) => p.category !== "hotel").length,
+      totalHotels: allProjects.filter((p) => p.category === "hotel").length,
+      data: allProjects.map((item) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        category: item.category,
+        provinceName: item.provinceName,
+        coordinates: item.coordinates,
+        isActive: item.isActive,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `iran-map-data-${new Date().toISOString().split("T")[0]}.json`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showNotification("داده‌ها با موفقیت به فرمت JSON صادر شد", "success");
+    setExportMenuAnchor(null);
+  };
+
+  // Show notification
+  const showNotification = (
+    message: string,
+    severity: "success" | "error" | "info"
+  ) => {
+    setNotification({ open: true, message, severity });
+  };
+
+  // Enhanced save handlers with loading states
+  const handleAddProvinceInfoWithLoading = async () => {
+    if (
+      !selectedAddProvince ||
+      !projectName.trim() ||
+      !projectType.trim() ||
+      !clickCoordinates
+    )
+      return;
+
+    setLoading(true);
+
+    try {
+      const filteredFields = fields.filter((f) => f.label && f.value !== "");
+      if (filteredFields.length === 0) {
+        showNotification("حداقل یک فیلد باید تکمیل شود", "error");
+        return;
+      }
+
+      // Store data with project type and coordinates
+      const projectData = {
+        name: projectName.trim(),
+        type: projectType.trim(),
+        coordinates: clickCoordinates,
+        category: "project",
+        isActive: projectIsActive,
+      };
+      addProvinceInfo(selectedAddProvince, projectData, filteredFields);
+
+      // Close add modal and open info modal to show the created data
+      setAddModalOpen(false);
+      setSelectedProvince(selectedAddProvince);
+      setInfoModalOpen(true);
+
+      // Reset the add form
+      setFields([{ label: "", value: "" }]);
+      setSelectedAddProvince(null);
+      setProjectName("");
+      setProjectType("");
+      setProjectIsActive(true);
+      setClickCoordinates(null);
+
+      showNotification("پروژه با موفقیت اضافه شد", "success");
+    } catch (error) {
+      showNotification("خطا در افزودن پروژه", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddHotelInfoWithLoading = async () => {
+    if (
+      !selectedAddProvince ||
+      !hotelName.trim() ||
+      !hotelType.trim() ||
+      !clickCoordinates
+    )
+      return;
+
+    setLoading(true);
+
+    try {
+      const filteredFields = fields.filter((f) => f.label && f.value !== "");
+      if (filteredFields.length === 0) {
+        showNotification("حداقل یک فیلد باید تکمیل شود", "error");
+        return;
+      }
+
+      // Store hotel data with type, coordinates, and isActive status
+      const hotelData = {
+        name: hotelName.trim(),
+        type: hotelType.trim(),
+        coordinates: clickCoordinates,
+        category: "hotel",
+        isActive: hotelIsActive,
+      };
+      addProvinceInfo(selectedAddProvince, hotelData, filteredFields);
+
+      // Close add modal and open info modal to show the created data
+      setAddHotelModalOpen(false);
+      setSelectedProvince(selectedAddProvince);
+      setInfoModalOpen(true);
+
+      // Reset the add form
+      setFields([{ label: "", value: "" }]);
+      setSelectedAddProvince(null);
+      setHotelName("");
+      setHotelType("");
+      setHotelIsActive(true);
+      setClickCoordinates(null);
+
+      showNotification("اقامتگاه با موفقیت اضافه شد", "success");
+    } catch (error) {
+      showNotification("خطا در افزودن اقامتگاه", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Advanced statistics calculations
+  const getAdvancedStats = useMemo(() => {
+    const projects = allProjects.filter((p) => p.category !== "hotel");
+    const hotels = allProjects.filter((p) => p.category === "hotel");
+    const activeProjects = projects.filter((p) => p.isActive);
+    const inactiveProjects = projects.filter((p) => !p.isActive);
+    const activeHotels = hotels.filter((h) => h.isActive);
+    const inactiveHotels = hotels.filter((h) => !h.isActive);
+
+    // Province distribution
+    const provinceStats = provinceInfoList.reduce((acc, provinceInfo) => {
+      const provinceProjects = provinceInfo.projects.filter(
+        (p) => p.category !== "hotel"
+      );
+      const provinceHotels = provinceInfo.projects.filter(
+        (p) => p.category === "hotel"
+      );
+      if (provinceProjects.length > 0 || provinceHotels.length > 0) {
+        acc[provinceInfo.province.name_fa] = {
+          projects: provinceProjects.length,
+          hotels: provinceHotels.length,
+          activeHotels: provinceHotels.filter((h) => h.isActive !== false)
+            .length,
+        };
+      }
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Type distribution
+    const projectTypeStats = Object.entries(projectTypeColors)
+      .map(([type, color]) => ({
+        type,
+        color,
+        count: projects.filter((p) => p.type === type).length,
+      }))
+      .filter((stat) => stat.count > 0);
+
+    const hotelTypeStats = Object.entries(hotelTypeColors)
+      .map(([type, color]) => ({
+        type,
+        color,
+        count: hotels.filter((h) => h.type === type).length,
+        activeCount: hotels.filter((h) => h.type === type && h.isActive).length,
+      }))
+      .filter((stat) => stat.count > 0);
+
+    return {
+      total: allProjects.length,
+      projects: projects.length,
+      hotels: hotels.length,
+      activeProjects: activeProjects.length,
+      inactiveProjects: inactiveProjects.length,
+      activeHotels: activeHotels.length,
+      inactiveHotels: inactiveHotels.length,
+      provinceStats,
+      projectTypeStats,
+      hotelTypeStats,
+      topProvinces: Object.entries(provinceStats)
+        .sort(
+          ([, a], [, b]) =>
+            (a as any).projects +
+            (a as any).hotels -
+            ((b as any).projects + (b as any).hotels)
+        )
+        .reverse()
+        .slice(0, 5),
+    };
+  }, [allProjects, provinceInfoList]);
+
   return (
     <Box sx={{ position: "relative", height: "100vh", width: "100vw" }}>
       <MapContainer
@@ -580,6 +990,8 @@ export const IranMapContainer = () => {
         ]}
         maxBoundsViscosity={1.0}
       >
+        {/* Auto-zoom component - removed per user request */}
+
         {/* Base map */}
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {/* Gray mask around Iran */}
@@ -620,7 +1032,7 @@ export const IranMapContainer = () => {
                 eventHandlers={{
                   click: () => handleMarkerClick(item.id),
                 }}
-              ></Marker>
+              />
             );
           })}
       </MapContainer>
@@ -646,6 +1058,42 @@ export const IranMapContainer = () => {
             <SettingsIcon />
           </IconButton>
         </Tooltip>
+
+        {/* Export Menu */}
+        <Tooltip title="دانلود داده‌ها">
+          <IconButton
+            onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+            disabled={allProjects.length === 0}
+            sx={{
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "primary.main", color: "white" },
+            }}
+          >
+            <DownloadIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          anchorEl={exportMenuAnchor}
+          open={Boolean(exportMenuAnchor)}
+          onClose={() => setExportMenuAnchor(null)}
+          transformOrigin={{ horizontal: "left", vertical: "top" }}
+          anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+        >
+          <MenuItem onClick={exportToCSV}>
+            <ListItemIcon>
+              <TableViewIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>CSV</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={exportToJSON}>
+            <ListItemIcon>
+              <GetAppIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>JSON</ListItemText>
+          </MenuItem>
+        </Menu>
+
         <Tooltip title={persianLabels.logout}>
           <IconButton
             onClick={handleLogout}
@@ -660,153 +1108,688 @@ export const IranMapContainer = () => {
         </Tooltip>
       </Box>
 
-      {/* Legend for project and hotel types */}
-      {allProjects.length > 0 && (
-        <Box
+      {/* Search Bar */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 16,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1000,
+          width: "90%",
+          maxWidth: 400,
+        }}
+      >
+        <TextField
+          id="search-input"
+          fullWidth
+          variant="outlined"
+          placeholder="جستجوی پروژه، اقامتگاه یا استان... (Ctrl+F)"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          size="small"
           sx={{
-            position: "absolute",
-            bottom: 16,
-            right: 16,
             bgcolor: "background.paper",
-            p: 2,
-            borderRadius: 2,
-            boxShadow: 2,
-            zIndex: 1000,
-            maxWidth: 280,
+            borderRadius: 3,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 3,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
           }}
-        >
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchResults([]);
+                  }}
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {/* Search Results Dropdown */}
+        {searchResults.length > 0 && (
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 1,
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+              mt: 1,
+              maxHeight: 300,
+              overflow: "auto",
+              zIndex: 1001,
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-              راهنمای نوع پروژه‌ها و اقامتگاه‌ها
-            </Typography>
-            {selectedTypes.length > 0 && (
-              <Button
-                size="small"
-                variant="text"
-                onClick={clearAllFilters}
-                sx={{ fontSize: "0.7rem", minWidth: "auto", p: 0.5 }}
+            {searchResults.map((item, index) => (
+              <Box
+                key={`${item.id}-${index}`}
+                onClick={() => handleSearchResultClick(item)}
+                sx={{
+                  p: 2,
+                  cursor: "pointer",
+                  borderBottom:
+                    index < searchResults.length - 1
+                      ? "1px solid rgba(0,0,0,0.05)"
+                      : "none",
+                  "&:hover": { bgcolor: "grey.50" },
+                }}
               >
-                نمایش همه
-              </Button>
-            )}
+                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {item.category === "hotel" ? (
+                      <HotelIcon fontSize="small" color="secondary" />
+                    ) : (
+                      <ConstructionIcon fontSize="small" color="primary" />
+                    )}
+                    {item.name}
+                  </Box>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {item.type} • {item.provinceName}
+                  {(item.category === "hotel" ||
+                    item.category === "project") && (
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                      }}
+                    >
+                      {item.isActive ? (
+                        <>
+                          <CheckCircleIcon
+                            fontSize="inherit"
+                            sx={{ color: "#4CAF50" }}
+                          />
+                          <span style={{ color: "#4CAF50" }}>فعال</span>
+                        </>
+                      ) : (
+                        <>
+                          <CancelIcon
+                            fontSize="inherit"
+                            sx={{ color: "#f44336" }}
+                          />
+                          <span style={{ color: "#f44336" }}>غیرفعال</span>
+                        </>
+                      )}
+                    </Box>
+                  )}
+                </Typography>
+              </Box>
+            ))}
           </Box>
+        )}
+      </Box>
 
-          {/* Project Types */}
-          {Object.entries(projectTypeColors).map(([type, color]) => {
-            const hasProjectsOfThisType = allProjects.some(
-              (p) => p.type === type && p.category !== "hotel"
-            );
-            if (!hasProjectsOfThisType) return null;
+      {/* Statistics Dashboard Toggle - Top Right */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 16,
+          right: 16,
+          zIndex: 1000,
+          width: "50px",
+          height: "50px",
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Tooltip title="داشبورد آمار">
+          <IconButton
+            onClick={() => setDashboardOpen(!dashboardOpen)}
+            disabled={allProjects.length === 0}
+            sx={{
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "primary.main", color: "white" },
+            }}
+          >
+            <DashboardIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-            const typeKey = `project-${type}`;
-            const isSelected = selectedTypes.includes(typeKey);
-            const isFiltered = selectedTypes.length > 0 && !isSelected;
-
-            return (
+      {/* Statistics Dashboard - Bottom Right */}
+      {dashboardOpen && (
+        <>
+          {/* Backdrop for click-outside-to-close */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1500,
+              pointerEvents: "auto",
+            }}
+            onClick={() => setDashboardOpen(false)}
+          />
+          {/* Statistics Dashboard Box */}
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 16,
+              right: 16,
+              width: 350,
+              maxHeight: "80vh",
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+              border: "1px solid rgba(0,0,0,0.06)",
+              overflow: "hidden",
+              zIndex: 1501,
+              pointerEvents: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Dashboard Header */}
+            <Box
+              sx={{
+                p: 2.5,
+                background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
+                color: "white",
+              }}
+            >
               <Box
-                key={`project-${type}`}
-                onClick={() => handleTypeFilter(type, "project")}
                 sx={{
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  mb: 0.5,
-                  cursor: "pointer",
-                  opacity: isFiltered ? 0.3 : 1,
-                  backgroundColor: isSelected
-                    ? "rgba(25, 118, 210, 0.1)"
-                    : "transparent",
-                  borderRadius: 1,
-                  p: 0.5,
-                  "&:hover": {
-                    backgroundColor: isSelected
-                      ? "rgba(25, 118, 210, 0.2)"
-                      : "rgba(0, 0, 0, 0.04)",
-                  },
                 }}
               >
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mr: 1,
-                    fontSize: "14px",
-                    backgroundColor: "rgba(255,255,255,0.9)",
-                    borderRadius: "50%",
-                    border: `1px solid ${color}`,
-                  }}
-                >
-                  {getProjectIcon(type)}
-                </Box>
-                <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
-                  {type}
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <DashboardIcon />
+                    داشبورد آمار
+                  </Box>
                 </Typography>
-              </Box>
-            );
-          })}
-
-          {/* Hotel Types */}
-          {Object.entries(hotelTypeColors).map(([type, color]) => {
-            const hasHotelsOfThisType = allProjects.some(
-              (p) => p.type === type && p.category === "hotel"
-            );
-            if (!hasHotelsOfThisType) return null;
-
-            const typeKey = `hotel-${type}`;
-            const isSelected = selectedTypes.includes(typeKey);
-            const isFiltered = selectedTypes.length > 0 && !isSelected;
-
-            return (
-              <Box
-                key={`hotel-${type}`}
-                onClick={() => handleTypeFilter(type, "hotel")}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mb: 0.5,
-                  cursor: "pointer",
-                  opacity: isFiltered ? 0.3 : 1,
-                  backgroundColor: isSelected
-                    ? "rgba(156, 39, 176, 0.1)"
-                    : "transparent",
-                  borderRadius: 1,
-                  p: 0.5,
-                  "&:hover": {
-                    backgroundColor: isSelected
-                      ? "rgba(156, 39, 176, 0.2)"
-                      : "rgba(0, 0, 0, 0.04)",
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mr: 1,
-                    fontSize: "16px",
-                  }}
+                <IconButton
+                  size="small"
+                  onClick={() => setDashboardOpen(false)}
+                  sx={{ color: "white" }}
                 >
-                  {getHotelIcon()}
-                </Box>
-                <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
-                  {type}
-                </Typography>
+                  ✕
+                </IconButton>
               </Box>
-            );
-          })}
-        </Box>
+              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                آمار کلی پروژه‌ها و اقامتگاه‌ها
+              </Typography>
+            </Box>
+
+            {/* Dashboard Content */}
+            <Box sx={{ maxHeight: "60vh", overflow: "auto", p: 2.5 }}>
+              {/* Project Status */}
+              {getAdvancedStats.projects > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 1.5, fontWeight: 600 }}
+                  >
+                    وضعیت پروژه‌ها
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(76, 175, 80, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "success.main", fontWeight: 600 }}
+                      >
+                        {getAdvancedStats.activeProjects}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <CheckCircleIcon
+                            fontSize="inherit"
+                            sx={{ color: "success.main" }}
+                          />
+                          فعال
+                        </Box>
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(244, 67, 54, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "error.main", fontWeight: 600 }}
+                      >
+                        {getAdvancedStats.inactiveProjects}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <CancelIcon
+                            fontSize="inherit"
+                            sx={{ color: "error.main" }}
+                          />
+                          غیرفعال
+                        </Box>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Hotel Status */}
+              {getAdvancedStats.hotels > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 1.5, fontWeight: 600 }}
+                  >
+                    وضعیت اقامتگاه‌ها
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(76, 175, 80, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "success.main", fontWeight: 600 }}
+                      >
+                        {getAdvancedStats.activeHotels}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <CheckCircleIcon
+                            fontSize="inherit"
+                            sx={{ color: "success.main" }}
+                          />
+                          فعال
+                        </Box>
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(244, 67, 54, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "error.main", fontWeight: 600 }}
+                      >
+                        {getAdvancedStats.inactiveHotels}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <CancelIcon
+                            fontSize="inherit"
+                            sx={{ color: "error.main" }}
+                          />
+                          غیرفعال
+                        </Box>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Top Provinces */}
+              {/* {getAdvancedStats.topProvinces.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 1.5, fontWeight: 600 }}
+                  >
+                    استان‌های پربازده
+                  </Typography>
+                  {getAdvancedStats.topProvinces.map(
+                    ([province, stats]: [string, any], index) => (
+                      <Box
+                        key={province}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          p: 1.5,
+                          mb: 1,
+                          bgcolor:
+                            index === 0 ? "rgba(255, 193, 7, 0.1)" : "grey.50",
+                          borderRadius: 2,
+                          border:
+                            index === 0
+                              ? "1px solid rgba(255, 193, 7, 0.3)"
+                              : "1px solid transparent",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {index === 0 && (
+                            <EmojiEventsIcon sx={{ mr: 1, color: "#FFD700" }} />
+                          )}
+                          {index === 1 && (
+                            <WorkspacePremiumIcon
+                              sx={{ mr: 1, color: "#C0C0C0" }}
+                            />
+                          )}
+                          {index === 2 && (
+                            <MilitaryTechIcon
+                              sx={{ mr: 1, color: "#CD7F32" }}
+                            />
+                          )}
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {province}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: "right" }}>
+                          <Typography variant="caption" color="text.secondary">
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                justifyContent: "flex-end",
+                              }}
+                            >
+                              {stats.projects > 0 && (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <ConstructionIcon
+                                    fontSize="inherit"
+                                    color="primary"
+                                  />
+                                  {stats.projects}
+                                </Box>
+                              )}
+                              {stats.hotels > 0 && (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <HotelIcon
+                                    fontSize="inherit"
+                                    color="secondary"
+                                  />
+                                  {stats.hotels}
+                                </Box>
+                              )}
+                            </Box>
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )
+                  )}
+                </Box>
+              )} */}
+
+              {/* Project Types Distribution */}
+              {getAdvancedStats.projectTypeStats.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 1.5,
+                    }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      توزیع انواع پروژه
+                    </Typography>
+                    {selectedTypes.some((type) =>
+                      type.startsWith("project-")
+                    ) && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "primary.main",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                        onClick={() => {
+                          setSelectedTypes((prev) =>
+                            prev.filter((type) => !type.startsWith("project-"))
+                          );
+                        }}
+                      >
+                        پاک کردن فیلتر
+                      </Typography>
+                    )}
+                  </Box>
+                  {getAdvancedStats.projectTypeStats.map((stat) => {
+                    const typeKey = `project-${stat.type}`;
+                    const isFiltered = selectedTypes.includes(typeKey);
+
+                    return (
+                      <Box
+                        key={stat.type}
+                        onClick={() => handleTypeFilter(stat.type, "project")}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 1,
+                          p: 1,
+                          borderRadius: 1,
+                          cursor: "pointer",
+                          bgcolor: isFiltered
+                            ? "rgba(25, 118, 210, 0.1)"
+                            : "transparent",
+                          border: isFiltered
+                            ? "1px solid rgba(25, 118, 210, 0.3)"
+                            : "1px solid transparent",
+                          "&:hover": {
+                            bgcolor: isFiltered
+                              ? "rgba(25, 118, 210, 0.15)"
+                              : "rgba(0, 0, 0, 0.04)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              backgroundColor: stat.color,
+                              borderRadius: "50%",
+                              mr: 1,
+                              opacity: isFiltered ? 1 : 0.7,
+                            }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontSize: "0.8rem",
+                              fontWeight: isFiltered ? 600 : 400,
+                              color: isFiltered ? "primary.main" : "inherit",
+                            }}
+                          >
+                            {stat.type} {isFiltered && "✓"}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: isFiltered ? "primary.main" : "inherit",
+                          }}
+                        >
+                          {stat.count}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+
+              {/* Hotel Types Distribution */}
+              {getAdvancedStats.hotelTypeStats.length > 0 && (
+                <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 1.5,
+                    }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      توزیع انواع اقامتگاه
+                    </Typography>
+                    {selectedTypes.some((type) =>
+                      type.startsWith("hotel-")
+                    ) && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "secondary.main",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                        onClick={() => {
+                          setSelectedTypes((prev) =>
+                            prev.filter((type) => !type.startsWith("hotel-"))
+                          );
+                        }}
+                      >
+                        پاک کردن فیلتر
+                      </Typography>
+                    )}
+                  </Box>
+                  {getAdvancedStats.hotelTypeStats.map((stat) => {
+                    const typeKey = `hotel-${stat.type}`;
+                    const isFiltered = selectedTypes.includes(typeKey);
+
+                    return (
+                      <Box
+                        key={stat.type}
+                        onClick={() => handleTypeFilter(stat.type, "hotel")}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 1,
+                          p: 1,
+                          borderRadius: 1,
+                          cursor: "pointer",
+                          bgcolor: isFiltered
+                            ? "rgba(156, 39, 176, 0.1)"
+                            : "transparent",
+                          border: isFiltered
+                            ? "1px solid rgba(156, 39, 176, 0.3)"
+                            : "1px solid transparent",
+                          "&:hover": {
+                            bgcolor: isFiltered
+                              ? "rgba(156, 39, 176, 0.15)"
+                              : "rgba(0, 0, 0, 0.04)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              backgroundColor: stat.color,
+                              borderRadius: 1,
+                              mr: 1,
+                              opacity: isFiltered ? 1 : 0.7,
+                            }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontSize: "0.8rem",
+                              fontWeight: isFiltered ? 600 : 400,
+                              color: isFiltered ? "secondary.main" : "inherit",
+                            }}
+                          >
+                            {stat.type} {isFiltered && "✓"}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: "right" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 400,
+                              color: isFiltered ? "secondary.main" : "inherit",
+                            }}
+                          >
+                            {stat.count}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </>
       )}
 
       {/* Province Selection Modal */}
@@ -859,8 +1842,59 @@ export const IranMapContainer = () => {
         </Box>
       </Modal>
 
+      {/* Province Information Box - Bottom Left */}
+      {infoModalOpen && (
+        <>
+          {/* Backdrop for click-outside-to-close */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1500,
+              pointerEvents: "auto",
+            }}
+            onClick={handleCloseInfoModal}
+          />
+          {/* Information Box */}
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 16,
+              left: 16,
+              width: 400,
+              maxHeight: "60vh",
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+              border: "1px solid rgba(0,0,0,0.06)",
+              overflow: "hidden",
+              zIndex: 1501,
+              pointerEvents: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProvinceInfoModal
+              open={true}
+              onClose={handleCloseInfoModal}
+              provinceInfo={
+                selectedProvince
+                  ? getProvinceInfoByName(selectedProvince.id)
+                  : null
+              }
+              tab={tab}
+              setTab={setTab}
+              selectedProjectName={selectedProjectName}
+              isBottomLeft={true}
+            />
+          </Box>
+        </>
+      )}
+
       <ProvinceInfoModal
-        open={infoModalOpen}
+        open={false}
         onClose={handleCloseInfoModal}
         provinceInfo={
           selectedProvince ? getProvinceInfoByName(selectedProvince.id) : null
@@ -884,8 +1918,10 @@ export const IranMapContainer = () => {
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}
         onRemoveField={handleRemoveField}
-        onSave={handleAddProvinceInfo}
+        onSave={handleAddProvinceInfoWithLoading}
         indexes={indexes}
+        projectIsActive={projectIsActive}
+        setProjectIsActive={setProjectIsActive}
       />
 
       <AddHotelModal
@@ -904,7 +1940,7 @@ export const IranMapContainer = () => {
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}
         onRemoveField={handleRemoveField}
-        onSave={handleAddHotelInfo}
+        onSave={handleAddHotelInfoWithLoading}
       />
 
       <ManageIndexesModal
@@ -916,6 +1952,48 @@ export const IranMapContainer = () => {
         onAddIndex={handleAddIndex}
         onRemoveIndex={handleRemoveIndex}
       />
+
+      {/* Loading Overlay */}
+      {loading && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bgcolor: "rgba(255, 255, 255, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+          }}
+        >
+          <Box sx={{ textAlign: "center" }}>
+            <CircularProgress size={60} />
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              در حال پردازش...
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={() => setNotification((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setNotification((prev) => ({ ...prev, open: false }))}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

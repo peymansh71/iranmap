@@ -13,6 +13,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
@@ -34,15 +36,17 @@ interface AddProvinceInfoModalProps {
   selectedProvince: Province | null;
   setSelectedProvince: (province: Province | null) => void;
   projectName: string;
-  setProjectName: (projectName: string) => void;
+  setProjectName: (name: string) => void;
   projectType: string;
-  setProjectType: (projectType: string) => void;
+  setProjectType: (type: string) => void;
   fields: Field[];
   onFieldChange: (idx: number, key: string, val: string) => void;
   onAddField: () => void;
   onRemoveField: (idx: number) => void;
   onSave: () => void;
   indexes: string[];
+  projectIsActive: boolean;
+  setProjectIsActive: (isActive: boolean) => void;
 }
 
 const steps = ["اطلاعات پروژه", "شاخص‌های پروژه"];
@@ -73,6 +77,8 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
   onRemoveField,
   onSave,
   indexes,
+  projectIsActive,
+  setProjectIsActive,
 }) => {
   const [activeStep, setActiveStep] = useState(0);
 
@@ -157,6 +163,17 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
                 ))}
               </Select>
             </FormControl>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={projectIsActive}
+                  onChange={(e) => setProjectIsActive(e.target.checked)}
+                  color="success"
+                />
+              }
+              label="فعال"
+              sx={{ mt: 1 }}
+            />
           </Box>
         );
       case 1:
@@ -168,6 +185,12 @@ const AddProvinceInfoModal: React.FC<AddProvinceInfoModalProps> = ({
             </Typography>
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               نوع پروژه: <strong>{projectType}</strong>
+            </Typography>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              وضعیت:{" "}
+              <strong style={{ color: projectIsActive ? "green" : "gray" }}>
+                {projectIsActive ? "فعال" : "غیرفعال"}
+              </strong>
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               حداقل یک شاخص با مقدار معتبر وارد کنید
