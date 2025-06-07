@@ -184,6 +184,7 @@ export const IranMapContainer = () => {
   const [hotelName, setHotelName] = useState<string>("");
   const [hotelType, setHotelType] = useState<string>("");
   const [hotelIsActive, setHotelIsActive] = useState<boolean>(true);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]); // For filtering
   const [clickCoordinates, setClickCoordinates] = useState<
     [number, number] | null
   >(null);
@@ -541,6 +542,32 @@ export const IranMapContainer = () => {
     return items;
   }, [provinceInfoList]);
 
+  // Handle type filter toggle
+  const handleTypeFilter = (type: string, category: "project" | "hotel") => {
+    const typeKey = `${category}-${type}`;
+    setSelectedTypes((prev) => {
+      if (prev.includes(typeKey)) {
+        // Remove the type (unfilter)
+        return prev.filter((t) => t !== typeKey);
+      } else {
+        // Add the type (filter)
+        return [...prev, typeKey];
+      }
+    });
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedTypes([]);
+  };
+
+  // Check if a project/hotel should be visible based on current filters
+  const isItemVisible = (item: any) => {
+    if (selectedTypes.length === 0) return true; // No filter, show all
+    const typeKey = `${item.category}-${item.type}`;
+    return selectedTypes.includes(typeKey);
+  };
+
   return (
     <Box sx={{ position: "relative", height: "100vh", width: "100vw" }}>
       <MapContainer
@@ -573,27 +600,29 @@ export const IranMapContainer = () => {
         />
 
         {/* Project and Hotel markers */}
-        {allProjects.map((item) => {
-          const isHotel = item.category === "hotel";
-          const colorMap = isHotel ? hotelTypeColors : projectTypeColors;
-          const iconColor = colorMap[item.type] || "#757575";
+        {allProjects
+          .filter(isItemVisible) // Filter based on selected types
+          .map((item) => {
+            const isHotel = item.category === "hotel";
+            const colorMap = isHotel ? hotelTypeColors : projectTypeColors;
+            const iconColor = colorMap[item.type] || "#757575";
 
-          return (
-            <Marker
-              key={item.id}
-              position={item.coordinates}
-              icon={createCustomIcon(
-                iconColor,
-                item.category,
-                item.type,
-                item.isActive
-              )}
-              eventHandlers={{
-                click: () => handleMarkerClick(item.id),
-              }}
-            ></Marker>
-          );
-        })}
+            return (
+              <Marker
+                key={item.id}
+                position={item.coordinates}
+                icon={createCustomIcon(
+                  iconColor,
+                  item.category,
+                  item.type,
+                  item.isActive
+                )}
+                eventHandlers={{
+                  click: () => handleMarkerClick(item.id),
+                }}
+              ></Marker>
+            );
+          })}
       </MapContainer>
 
       <Box
@@ -646,9 +675,28 @@ export const IranMapContainer = () => {
             maxWidth: 280,
           }}
         >
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            راهنمای نوع پروژه‌ها و اقامتگاه‌ها
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1,
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              راهنمای نوع پروژه‌ها و اقامتگاه‌ها
+            </Typography>
+            {selectedTypes.length > 0 && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={clearAllFilters}
+                sx={{ fontSize: "0.7rem", minWidth: "auto", p: 0.5 }}
+              >
+                نمایش همه
+              </Button>
+            )}
+          </Box>
 
           {/* Project Types */}
           {Object.entries(projectTypeColors).map(([type, color]) => {
@@ -657,10 +705,31 @@ export const IranMapContainer = () => {
             );
             if (!hasProjectsOfThisType) return null;
 
+            const typeKey = `project-${type}`;
+            const isSelected = selectedTypes.includes(typeKey);
+            const isFiltered = selectedTypes.length > 0 && !isSelected;
+
             return (
               <Box
                 key={`project-${type}`}
-                sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
+                onClick={() => handleTypeFilter(type, "project")}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  cursor: "pointer",
+                  opacity: isFiltered ? 0.3 : 1,
+                  backgroundColor: isSelected
+                    ? "rgba(25, 118, 210, 0.1)"
+                    : "transparent",
+                  borderRadius: 1,
+                  p: 0.5,
+                  "&:hover": {
+                    backgroundColor: isSelected
+                      ? "rgba(25, 118, 210, 0.2)"
+                      : "rgba(0, 0, 0, 0.04)",
+                  },
+                }}
               >
                 <Box
                   sx={{
@@ -692,10 +761,31 @@ export const IranMapContainer = () => {
             );
             if (!hasHotelsOfThisType) return null;
 
+            const typeKey = `hotel-${type}`;
+            const isSelected = selectedTypes.includes(typeKey);
+            const isFiltered = selectedTypes.length > 0 && !isSelected;
+
             return (
               <Box
                 key={`hotel-${type}`}
-                sx={{ display: "flex", alignItems: "center", mb: 0.5 }}
+                onClick={() => handleTypeFilter(type, "hotel")}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  cursor: "pointer",
+                  opacity: isFiltered ? 0.3 : 1,
+                  backgroundColor: isSelected
+                    ? "rgba(156, 39, 176, 0.1)"
+                    : "transparent",
+                  borderRadius: 1,
+                  p: 0.5,
+                  "&:hover": {
+                    backgroundColor: isSelected
+                      ? "rgba(156, 39, 176, 0.2)"
+                      : "rgba(0, 0, 0, 0.04)",
+                  },
+                }}
               >
                 <Box
                   sx={{
