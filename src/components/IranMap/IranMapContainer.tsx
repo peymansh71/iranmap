@@ -89,15 +89,18 @@ const getProjectIcon = (projectType: string) => {
 const createCustomIcon = (
   color: string,
   category: string = "project",
-  projectType?: string
+  projectType?: string,
+  isActive: boolean = true
 ) => {
   const isHotel = category === "hotel";
 
   if (isHotel) {
-    // Use hotel emoji for hotels
+    // Use hotel emoji for hotels with active/inactive styles
     return L.divIcon({
       html: `
-        <div class="hotel-marker" style="
+        <div class="hotel-marker ${
+          isActive ? "active-hotel" : "inactive-hotel"
+        }" style="
           font-size: 20px;
           width: 24px; 
           height: 24px; 
@@ -107,7 +110,15 @@ const createCustomIcon = (
           cursor: pointer;
           transition: all 0.2s ease;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-        ">${getHotelIcon()}</div>
+          position: relative;
+        ">
+          ${getHotelIcon()}
+          ${
+            isActive
+              ? '<div class="active-indicator"></div>'
+              : '<div class="inactive-indicator"></div>'
+          }
+        </div>
       `,
       className: "custom-marker",
       iconSize: [24, 24],
@@ -172,6 +183,7 @@ export const IranMapContainer = () => {
   const [projectType, setProjectType] = useState<string>("");
   const [hotelName, setHotelName] = useState<string>("");
   const [hotelType, setHotelType] = useState<string>("");
+  const [hotelIsActive, setHotelIsActive] = useState<boolean>(true);
   const [clickCoordinates, setClickCoordinates] = useState<
     [number, number] | null
   >(null);
@@ -207,6 +219,7 @@ export const IranMapContainer = () => {
       setSelectedAddProvince(null);
       setHotelName("");
       setHotelType("");
+      setHotelIsActive(true);
       setClickCoordinates(null);
     }
   }, [addHotelModalOpen]);
@@ -272,6 +285,7 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setHotelName("");
     setHotelType("");
+    setHotelIsActive(true);
     setClickCoordinates(null);
   };
 
@@ -356,6 +370,42 @@ export const IranMapContainer = () => {
       transform: scale(1.3);
       filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) !important;
     }
+    .active-hotel {
+      position: relative;
+    }
+    .inactive-hotel {
+      position: relative;
+    }
+    .active-indicator {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      background-color: #4CAF50;
+      border-radius: 50%;
+      animation: blink-green 1.5s infinite;
+      box-shadow: 0 0 3px rgba(76, 175, 80, 0.6);
+    }
+    .inactive-indicator {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      background-color: #f44336;
+      border-radius: 50%;
+      animation: blink-red 1.5s infinite;
+      box-shadow: 0 0 3px rgba(244, 67, 54, 0.6);
+    }
+    @keyframes blink-green {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
+    @keyframes blink-red {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
     .custom-marker {
       z-index: 1000;
     }
@@ -416,12 +466,13 @@ export const IranMapContainer = () => {
     const filteredFields = fields.filter((f) => f.label && f.value !== "");
     if (filteredFields.length === 0) return;
 
-    // Store hotel data with type and coordinates
+    // Store hotel data with type, coordinates, and isActive status
     const hotelData = {
       name: hotelName.trim(),
       type: hotelType.trim(),
       coordinates: clickCoordinates,
       category: "hotel", // Add category to distinguish from projects
+      isActive: hotelIsActive, // Add isActive field
     };
     addProvinceInfo(selectedAddProvince, hotelData, filteredFields);
 
@@ -435,22 +486,27 @@ export const IranMapContainer = () => {
     setSelectedAddProvince(null);
     setHotelName("");
     setHotelType("");
+    setHotelIsActive(true);
     setClickCoordinates(null);
   };
 
   // Handle marker click to open ProvinceInfoModal with specific project
   const handleMarkerClick = (projectId: string) => {
-    // Find the project and its province
-    for (const provinceInfo of provinceInfoList) {
-      const projectIndex = projectId.split("-")[1];
-      const project = provinceInfo.projects[parseInt(projectIndex)];
-      if (project) {
-        // Set the selected province and project, then open info modal
-        setSelectedProvince(provinceInfo.province);
-        setSelectedProjectName(project.name);
-        setInfoModalOpen(true);
-        break;
-      }
+    // Parse the projectId to get province ID and project index
+    const [provinceId, projectIndex] = projectId.split("-");
+    const index = parseInt(projectIndex);
+
+    // Find the specific province first
+    const provinceInfo = provinceInfoList.find(
+      (info) => info.province.id === provinceId
+    );
+
+    if (provinceInfo && provinceInfo.projects[index]) {
+      const project = provinceInfo.projects[index];
+      // Set the selected province and project, then open info modal
+      setSelectedProvince(provinceInfo.province);
+      setSelectedProjectName(project.name);
+      setInfoModalOpen(true);
     }
   };
 
@@ -463,6 +519,7 @@ export const IranMapContainer = () => {
       coordinates: [number, number];
       provinceName: string;
       category: string;
+      isActive?: boolean;
     }> = [];
 
     provinceInfoList.forEach((provinceInfo) => {
@@ -475,6 +532,7 @@ export const IranMapContainer = () => {
             coordinates: item.coordinates,
             provinceName: provinceInfo.province.name_fa,
             category: item.category || "project", // Default to project for backward compatibility
+            isActive: item.isActive !== undefined ? item.isActive : true, // Default to active for backward compatibility
           });
         }
       });
@@ -524,7 +582,12 @@ export const IranMapContainer = () => {
             <Marker
               key={item.id}
               position={item.coordinates}
-              icon={createCustomIcon(iconColor, item.category, item.type)}
+              icon={createCustomIcon(
+                iconColor,
+                item.category,
+                item.type,
+                item.isActive
+              )}
               eventHandlers={{
                 click: () => handleMarkerClick(item.id),
               }}
@@ -745,6 +808,8 @@ export const IranMapContainer = () => {
         setHotelName={setHotelName}
         hotelType={hotelType}
         setHotelType={setHotelType}
+        hotelIsActive={hotelIsActive}
+        setHotelIsActive={setHotelIsActive}
         fields={fields}
         onFieldChange={handleFieldChange}
         onAddField={handleAddField}

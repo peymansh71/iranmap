@@ -108,6 +108,7 @@ const migrateProvinceData = (existingData) => {
       (project) => ({
         ...project,
         category: project.category || "project", // Default to project if category is missing
+        isActive: project.isActive !== undefined ? project.isActive : true, // Default to active if missing
       })
     );
 
@@ -139,11 +140,13 @@ const useProvinceInfoStore = create(
                   type: project.type,
                   coordinates: project.coordinates,
                   category: project.category || "project",
+                  isActive:
+                    project.isActive !== undefined ? project.isActive : true,
                   fields,
                 };
                 return { ...info, projects: updatedProjects };
               } else {
-                // Add new project
+                // Add new project/hotel
                 return {
                   ...info,
                   projects: [
@@ -153,6 +156,10 @@ const useProvinceInfoStore = create(
                       type: project.type,
                       coordinates: project.coordinates,
                       category: project.category || "project",
+                      isActive:
+                        project.isActive !== undefined
+                          ? project.isActive
+                          : true,
                       fields,
                     },
                   ],

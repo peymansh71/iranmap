@@ -13,6 +13,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
@@ -37,6 +39,8 @@ interface AddHotelModalProps {
   setHotelName: (hotelName: string) => void;
   hotelType: string;
   setHotelType: (hotelType: string) => void;
+  hotelIsActive: boolean;
+  setHotelIsActive: (isActive: boolean) => void;
   fields: Field[];
   onFieldChange: (idx: number, key: string, val: string) => void;
   onAddField: () => void;
@@ -90,6 +94,8 @@ const AddHotelModal: React.FC<AddHotelModalProps> = ({
   setHotelName,
   hotelType,
   setHotelType,
+  hotelIsActive,
+  setHotelIsActive,
   fields,
   onFieldChange,
   onAddField,
@@ -140,6 +146,7 @@ const AddHotelModal: React.FC<AddHotelModalProps> = ({
                 if (newValue?.id !== selectedProvince?.id) {
                   setHotelName(""); // Only reset hotel name when province actually changes
                   setHotelType(""); // Also reset hotel type
+                  setHotelIsActive(true); // Reset to active by default
                 }
               }}
               getOptionLabel={(option) => option.name_fa}
@@ -179,6 +186,17 @@ const AddHotelModal: React.FC<AddHotelModalProps> = ({
                 ))}
               </Select>
             </FormControl>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hotelIsActive}
+                  onChange={(e) => setHotelIsActive(e.target.checked)}
+                  color="success"
+                />
+              }
+              label="فعال"
+              sx={{ mt: 1 }}
+            />
           </Box>
         );
       case 1:
@@ -188,8 +206,14 @@ const AddHotelModal: React.FC<AddHotelModalProps> = ({
               استان: <strong>{selectedProvince?.name_fa}</strong> | اقامتگاه:{" "}
               <strong>{hotelName}</strong>
             </Typography>
-            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
               نوع اقامتگاه: <strong>{hotelType}</strong>
+            </Typography>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              وضعیت:{" "}
+              <strong style={{ color: hotelIsActive ? "green" : "gray" }}>
+                {hotelIsActive ? "فعال" : "غیرفعال"}
+              </strong>
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               مشخصات و امکانات اقامتگاه را تکمیل کنید

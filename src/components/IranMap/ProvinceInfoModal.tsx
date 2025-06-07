@@ -200,6 +200,20 @@ const ProvinceInfoModal = ({
             <Typography variant="body2" color="text.secondary">
               نوع: {currentProject.type}
             </Typography>
+            {isCurrentHotel && (
+              <Typography variant="body2" color="text.secondary">
+                وضعیت:{" "}
+                <span
+                  style={{
+                    color:
+                      currentProject.isActive !== false ? "#4CAF50" : "#757575",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {currentProject.isActive !== false ? "🟢 فعال" : "🔘 غیرفعال"}
+                </span>
+              </Typography>
+            )}
           </Box>
         )}
 
