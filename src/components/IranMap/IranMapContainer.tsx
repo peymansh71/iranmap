@@ -43,9 +43,11 @@ import {
 import SettingsIcon from "@mui/icons-material/Settings";
 import useIndexesStore from "../../store/indexesStore";
 import useProvinceInfoStore from "../../store/provinceInfoStore";
+import useEmployeeStore from "../../store/employeeStore.ts";
 import ProvinceInfoModal from "./ProvinceInfoModal.tsx";
 import AddProvinceInfoModal from "./AddProvinceInfoModal.tsx";
 import AddHotelModal from "./AddHotelModal.tsx";
+import EmployeeManagementModal from "./EmployeeManagementModal.tsx";
 import ManageIndexesModal from "./ManageIndexesModal.tsx";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
@@ -62,6 +64,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
+import PeopleIcon from "@mui/icons-material/People";
 
 // Fix Leaflet default icon issue with webpack - safer approach
 try {
@@ -189,6 +192,51 @@ const createCustomIcon = (
   }
 };
 
+// Create person icon for provinces with employees
+const createPersonIcon = (employeeCount: number) => {
+  return L.divIcon({
+    html: `
+      <div class="person-marker" style="
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        border: 2px solid white;
+        position: relative;
+      ">
+        👤
+        <div style="
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background-color: #FF5722;
+          color: white;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: bold;
+          border: 1px solid white;
+        ">${employeeCount > 999 ? "999+" : employeeCount}</div>
+      </div>
+    `,
+    className: "person-icon",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+};
+
 // Type definitions
 interface Province {
   id: number;
@@ -225,6 +273,7 @@ export const IranMapContainer = () => {
   const [hotelIsActive, setHotelIsActive] = useState<boolean>(true);
   const [projectIsActive, setProjectIsActive] = useState<boolean>(true);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]); // For filtering
+  const [showEmployees, setShowEmployees] = useState<boolean>(true); // For employee filtering
   const [searchQuery, setSearchQuery] = useState<string>(""); // For search functionality
   const [searchResults, setSearchResults] = useState<any[]>([]); // Search results
   const [loading, setLoading] = useState<boolean>(false); // Loading state
@@ -241,6 +290,7 @@ export const IranMapContainer = () => {
     null
   );
   const [dashboardOpen, setDashboardOpen] = useState<boolean>(false);
+  const [employeeModalOpen, setEmployeeModalOpen] = useState<boolean>(false);
   const [clickCoordinates, setClickCoordinates] = useState<
     [number, number] | null
   >(null);
@@ -257,6 +307,8 @@ export const IranMapContainer = () => {
   const getProvinceInfoByName = useProvinceInfoStore(
     (state) => state.getProvinceInfoByName
   );
+  const { employees, getTotalEmployees, getEmployeesByProvince } =
+    useEmployeeStore();
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
@@ -532,8 +584,8 @@ export const IranMapContainer = () => {
       name: hotelName.trim(),
       type: hotelType.trim(),
       coordinates: clickCoordinates,
-      category: "hotel", // Add category to distinguish from projects
-      isActive: hotelIsActive, // Add isActive field
+      category: "hotel",
+      isActive: hotelIsActive,
     };
     addProvinceInfo(selectedAddProvince, hotelData, filteredFields);
 
@@ -619,6 +671,12 @@ export const IranMapContainer = () => {
   // Clear all filters
   const clearAllFilters = () => {
     setSelectedTypes([]);
+    setShowEmployees(true);
+  };
+
+  // Toggle employee visibility
+  const toggleEmployeeVisibility = () => {
+    setShowEmployees((prev) => !prev);
   };
 
   // Check if a project/hotel should be visible based on current filters
@@ -706,9 +764,12 @@ export const IranMapContainer = () => {
         setSelectionModalOpen(false);
         setSettingsOpen(false);
         setDashboardOpen(false);
-        // Clear search
+        setEmployeeModalOpen(false);
+        // Clear search and filters
         setSearchQuery("");
         setSearchResults([]);
+        setSelectedTypes([]);
+        setShowEmployees(true);
       }
     };
 
@@ -963,6 +1024,8 @@ export const IranMapContainer = () => {
       inactiveProjects: inactiveProjects.length,
       activeHotels: activeHotels.length,
       inactiveHotels: inactiveHotels.length,
+      employees: getTotalEmployees(),
+      employeeProvinces: employees.length,
       provinceStats,
       projectTypeStats,
       hotelTypeStats,
@@ -1035,6 +1098,68 @@ export const IranMapContainer = () => {
               />
             );
           })}
+
+        {/* Employee markers - Person icons for provinces with employees */}
+        {showEmployees &&
+          employees.map((emp) => {
+            // Find the province center from the GeoJSON data
+            const provinceFeature = iranProvinces.features.find(
+              (feature) =>
+                feature.properties &&
+                feature.properties.name_fa === emp.provinceName
+            );
+
+            if (!provinceFeature || !provinceFeature.geometry) return null;
+
+            // Calculate province center (simple centroid calculation)
+            let centerLat = 0,
+              centerLng = 0,
+              pointCount = 0;
+
+            if (provinceFeature.geometry.type === "Polygon") {
+              const coordinates = provinceFeature.geometry
+                .coordinates[0] as number[][];
+              coordinates.forEach(([lng, lat]) => {
+                centerLng += lng;
+                centerLat += lat;
+                pointCount++;
+              });
+            } else if (provinceFeature.geometry.type === "MultiPolygon") {
+              provinceFeature.geometry.coordinates.forEach((polygon) => {
+                const outerRing = polygon[0] as number[][];
+                outerRing.forEach(([lng, lat]) => {
+                  centerLng += lng;
+                  centerLat += lat;
+                  pointCount++;
+                });
+              });
+            }
+
+            if (pointCount === 0) return null;
+
+            const center: [number, number] = [
+              centerLat / pointCount,
+              centerLng / pointCount,
+            ];
+
+            return (
+              <Marker
+                key={`employee-${emp.provinceId}`}
+                position={center}
+                icon={createPersonIcon(emp.employeeCount)}
+              >
+                <Popup>
+                  <div style={{ textAlign: "center", padding: "5px" }}>
+                    <strong>{emp.provinceName}</strong>
+                    <br />
+                    <span style={{ color: "#4CAF50", fontWeight: "bold" }}>
+                      {emp.employeeCount} نفر
+                    </span>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
 
       <Box
@@ -1056,6 +1181,19 @@ export const IranMapContainer = () => {
             }}
           >
             <SettingsIcon />
+          </IconButton>
+        </Tooltip>
+
+        {/* Employee Management */}
+        <Tooltip title="مدیریت کارکنان">
+          <IconButton
+            onClick={() => setEmployeeModalOpen(true)}
+            sx={{
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "success.main", color: "white" },
+            }}
+          >
+            <PeopleIcon />
           </IconButton>
         </Tooltip>
 
@@ -1337,6 +1475,120 @@ export const IranMapContainer = () => {
 
             {/* Dashboard Content */}
             <Box sx={{ maxHeight: "60vh", overflow: "auto", p: 2.5 }}>
+              {/* Filter Status */}
+              {(selectedTypes.length > 0 || !showEmployees) && (
+                <Box
+                  sx={{
+                    mb: 3,
+                    p: 2,
+                    bgcolor: "rgba(33, 150, 243, 0.08)",
+                    borderRadius: 2,
+                    border: "1px solid rgba(33, 150, 243, 0.2)",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 600, color: "primary.main" }}
+                    >
+                      فیلترهای فعال (
+                      {selectedTypes.length + (!showEmployees ? 1 : 0)})
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "primary.main",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        fontWeight: 600,
+                      }}
+                      onClick={clearAllFilters}
+                    >
+                      پاک کردن همه
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {/* Project and Hotel Filter Tags */}
+                    {selectedTypes.map((typeKey) => {
+                      const [category, type] = typeKey.split("-");
+                      const isHotel = category === "hotel";
+                      return (
+                        <Box
+                          key={typeKey}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            px: 1.5,
+                            py: 0.5,
+                            bgcolor: isHotel
+                              ? "secondary.main"
+                              : "primary.main",
+                            color: "white",
+                            borderRadius: 1,
+                            fontSize: "0.75rem",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => {
+                            const [, actualType] = typeKey.split("-");
+                            handleTypeFilter(
+                              actualType,
+                              category as "project" | "hotel"
+                            );
+                          }}
+                        >
+                          {isHotel ? (
+                            <HotelIcon fontSize="inherit" />
+                          ) : (
+                            <ConstructionIcon fontSize="inherit" />
+                          )}
+                          {type}
+                          <span style={{ marginLeft: "4px" }}>✕</span>
+                        </Box>
+                      );
+                    })}
+                    {/* Employee Filter Tag */}
+                    {!showEmployees && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          px: 1.5,
+                          py: 0.5,
+                          bgcolor: "success.main",
+                          color: "white",
+                          borderRadius: 1,
+                          fontSize: "0.75rem",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => setShowEmployees(true)}
+                      >
+                        <PeopleIcon fontSize="inherit" />
+                        کارکنان مخفی
+                        <span style={{ marginLeft: "4px" }}>✕</span>
+                      </Box>
+                    )}
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
+                  >
+                    نمایش {allProjects.filter(isItemVisible).length} از{" "}
+                    {allProjects.length} پروژه/اقامتگاه
+                    {!showEmployees && " • کارکنان مخفی"}
+                  </Typography>
+                </Box>
+              )}
+
               {/* Project Status */}
               {getAdvancedStats.projects > 0 && (
                 <Box sx={{ mb: 3 }}>
@@ -1489,100 +1741,129 @@ export const IranMapContainer = () => {
                 </Box>
               )}
 
-              {/* Top Provinces */}
-              {/* {getAdvancedStats.topProvinces.length > 0 && (
+              {/* Employee Statistics */}
+              {getAdvancedStats.employees > 0 && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ mb: 1.5, fontWeight: 600 }}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 1.5,
+                    }}
                   >
-                    استان‌های پربازده
-                  </Typography>
-                  {getAdvancedStats.topProvinces.map(
-                    ([province, stats]: [string, any], index) => (
-                      <Box
-                        key={province}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      آمار کارکنان
+                    </Typography>
+                    {!showEmployees && (
+                      <Typography
+                        variant="caption"
                         sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          p: 1.5,
-                          mb: 1,
-                          bgcolor:
-                            index === 0 ? "rgba(255, 193, 7, 0.1)" : "grey.50",
-                          borderRadius: 2,
-                          border:
-                            index === 0
-                              ? "1px solid rgba(255, 193, 7, 0.3)"
-                              : "1px solid transparent",
+                          color: "success.main",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                        onClick={() => setShowEmployees(true)}
+                      >
+                        نمایش کارکنان
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box
+                    onClick={toggleEmployeeVisibility}
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      cursor: "pointer",
+                      p: 1,
+                      borderRadius: 2,
+                      bgcolor: showEmployees
+                        ? "rgba(76, 175, 80, 0.1)"
+                        : "transparent",
+                      border: showEmployees
+                        ? "1px solid rgba(76, 175, 80, 0.3)"
+                        : "1px solid transparent",
+                      "&:hover": {
+                        bgcolor: showEmployees
+                          ? "rgba(76, 175, 80, 0.15)"
+                          : "rgba(0, 0, 0, 0.04)",
+                      },
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(76, 175, 80, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                        opacity: showEmployees ? 1 : 0.6,
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: "success.main",
+                          fontWeight: showEmployees ? 600 : 400,
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {index === 0 && (
-                            <EmojiEventsIcon sx={{ mr: 1, color: "#FFD700" }} />
-                          )}
-                          {index === 1 && (
-                            <WorkspacePremiumIcon
-                              sx={{ mr: 1, color: "#C0C0C0" }}
-                            />
-                          )}
-                          {index === 2 && (
-                            <MilitaryTechIcon
-                              sx={{ mr: 1, color: "#CD7F32" }}
-                            />
-                          )}
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {province}
-                          </Typography>
+                        {getAdvancedStats.employees} {showEmployees && "✓"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <PeopleIcon
+                            fontSize="inherit"
+                            sx={{ color: "success.main" }}
+                          />
+                          کل کارکنان
                         </Box>
-                        <Box sx={{ textAlign: "right" }}>
-                          <Typography variant="caption" color="text.secondary">
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                                justifyContent: "flex-end",
-                              }}
-                            >
-                              {stats.projects > 0 && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 0.5,
-                                  }}
-                                >
-                                  <ConstructionIcon
-                                    fontSize="inherit"
-                                    color="primary"
-                                  />
-                                  {stats.projects}
-                                </Box>
-                              )}
-                              {stats.hotels > 0 && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 0.5,
-                                  }}
-                                >
-                                  <HotelIcon
-                                    fontSize="inherit"
-                                    color="secondary"
-                                  />
-                                  {stats.hotels}
-                                </Box>
-                              )}
-                            </Box>
-                          </Typography>
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        p: 1.5,
+                        bgcolor: "rgba(25, 118, 210, 0.08)",
+                        borderRadius: 2,
+                        textAlign: "center",
+                        opacity: showEmployees ? 1 : 0.6,
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: "primary.main",
+                          fontWeight: showEmployees ? 600 : 400,
+                        }}
+                      >
+                        {getAdvancedStats.employeeProvinces}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <DashboardIcon
+                            fontSize="inherit"
+                            sx={{ color: "primary.main" }}
+                          />
+                          استان فعال
                         </Box>
-                      </Box>
-                    )
-                  )}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
-              )} */}
+              )}
 
               {/* Project Types Distribution */}
               {getAdvancedStats.projectTypeStats.length > 0 && (
@@ -1951,6 +2232,12 @@ export const IranMapContainer = () => {
         setNewIndex={setNewIndex}
         onAddIndex={handleAddIndex}
         onRemoveIndex={handleRemoveIndex}
+      />
+
+      <EmployeeManagementModal
+        open={employeeModalOpen}
+        onClose={() => setEmployeeModalOpen(false)}
+        provinces={provinceInfoList.map((info) => info.province)}
       />
 
       {/* Loading Overlay */}
