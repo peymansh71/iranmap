@@ -175,6 +175,13 @@ const useProvinceInfoStore = create(
           (info) => info.province.id === provinceId
         );
       },
+      getProvinceByName: (provinceName) => {
+        const state = get();
+        const provinceInfo = state.provinceInfoList.find(
+          (info) => info.province.name_fa === provinceName
+        );
+        return provinceInfo ? provinceInfo.province : null;
+      },
       // Add a function to reset the store to initial state
       resetStore: () => set({ provinceInfoList: initialProvinceInfo }),
     }),
