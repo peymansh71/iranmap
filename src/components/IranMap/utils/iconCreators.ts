@@ -23,28 +23,28 @@ export const createCustomIcon = (
   const isHotel = category === "hotel";
 
   if (isHotel) {
-    const hotelEmoji = projectType
-      ? getHotelIconByType(projectType)
-      : getHotelIcon();
-
     return L.divIcon({
       html: `
         <div class="hotel-marker ${
           isActive ? "active-hotel" : "inactive-hotel"
         }" style="
-          font-size: 24px;
-          width: 24px; 
-          height: 24px; 
+          background-color: ${color};
+          color: white;
+          border-radius: 6px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 14px;
+          font-weight: bold;
           cursor: pointer;
-          transition: all 0.3s ease;
-          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid white;
           position: relative;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+          transition: all 0.3s ease;
         ">
-          ${hotelEmoji}
+          🛏️
           ${
             isActive
               ? '<div class="active-indicator"></div>'
@@ -52,28 +52,32 @@ export const createCustomIcon = (
           }
         </div>
       `,
-      className: "custom-marker hotel-emoji-marker",
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      className: "custom-marker hotel-box-marker",
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     });
   } else {
-    // Use project emojis for projects
+    // Use styled boxes for projects too
     return L.divIcon({
       html: `
-        <div class="project-marker" style="
-          font-size: 18px;
-          width: 22px; 
-          height: 22px; 
+        <div class="project-marker ${
+          isActive ? "active-project" : "inactive-project"
+        }" style="
+          background-color: ${color};
+          color: white;
+          border-radius: 6px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 14px;
+          font-weight: bold;
           cursor: pointer;
-          transition: all 0.2s ease;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-          background-color: rgba(255,255,255,0.9);
-          border-radius: 50%;
-          border: 1px solid ${color};
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid white;
           position: relative;
+          transition: all 0.3s ease;
         ">${getProjectIcon(projectType || "")}
           ${
             isActive
@@ -82,9 +86,9 @@ export const createCustomIcon = (
           }
         </div>
       `,
-      className: "custom-marker",
-      iconSize: [22, 22],
-      iconAnchor: [11, 11],
+      className: "custom-marker project-box-marker",
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     });
   }
 };
@@ -94,43 +98,44 @@ export const createPersonIcon = (employeeCount: number) => {
   return L.divIcon({
     html: `
       <div class="person-marker" style="
-        background-color:rgb(249, 252, 105);
+        background-color: rgb(249, 252, 105);
         color: white;
-        border-radius: 50%;
-        width: 25px;
-        height: 25px;
+        border-radius: 6px;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
+        font-size: 14px;
         font-weight: bold;
         cursor: pointer;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         border: 2px solid white;
         position: relative;
+        transition: all 0.3s ease;
       ">
         👤
         <div style="
           position: absolute;
-          top: -8px;
-          right: -8px;
-          background-color:rgb(67, 76, 5);
+          top: -6px;
+          right: -6px;
+          background-color: rgb(67, 76, 5);
           color: white;
           border-radius: 50%;
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 8px;
+          font-size: 7px;
           font-weight: bold;
           border: 1px solid white;
         ">${employeeCount > 999 ? "999+" : employeeCount}</div>
       </div>
     `,
     className: "person-icon",
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -140,23 +145,31 @@ export const addMarkerStyles = () => {
   styleSheet.innerText = `
     .leaflet-interactive:focus { outline: none !important; }
     .project-marker:hover {
-      transform: scale(1.3);
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) !important;
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
     }
     .hotel-marker:hover {
-      transform: scale(1.4);
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3)) !important;
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
     }
-    .hotel-emoji-marker {
+    .person-marker:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    }
+    .hotel-box-marker {
       background: transparent !important;
       border: none !important;
     }
-    .active-hotel {
+    .project-box-marker {
+      background: transparent !important;
+      border: none !important;
+    }
+    .active-hotel, .active-project {
       position: relative;
     }
-    .inactive-hotel {
+    .inactive-hotel, .inactive-project {
       position: relative;
-      opacity: 1;
+      opacity: 0.8;
     }
     .active-indicator {
       position: absolute;
@@ -176,7 +189,7 @@ export const addMarkerStyles = () => {
       right: -3px;
       width: 10px;
       height: 10px;
-      background-color:rgb(247, 22, 6);
+      background-color: rgb(247, 22, 6);
       border-radius: 50%;
       animation: blink-red 1.5s infinite;
       box-shadow: 0 0 4px rgba(244, 67, 54, 0.6);
