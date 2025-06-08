@@ -123,6 +123,9 @@ const useProvinceInfoStore = create(
   persist(
     (set, get) => ({
       provinceInfoList: initialProvinceInfo,
+      lastProjectsExcelImport: null,
+      lastHotelsExcelImport: null,
+
       addProvinceInfo: (province, project, fields) =>
         set((state) => ({
           provinceInfoList: state.provinceInfoList.map((info) => {
@@ -169,6 +172,77 @@ const useProvinceInfoStore = create(
             return info;
           }),
         })),
+
+      bulkImportProjectsFromExcel: (projectsData) => {
+        set((state) => {
+          // Complete replacement: clear ALL projects from ALL provinces
+          // and set only the new imported projects
+          const updatedProvinceInfoList = state.provinceInfoList.map(
+            (info) => ({
+              ...info,
+              projects: info.projects.filter((p) => p.category === "hotel"), // Keep only hotels
+            })
+          );
+
+          // Add the new projects to their respective provinces
+          projectsData.forEach(({ province, projects }) => {
+            const provinceIndex = updatedProvinceInfoList.findIndex(
+              (info) => info.province.name_fa === province.name_fa
+            );
+
+            if (provinceIndex >= 0) {
+              updatedProvinceInfoList[provinceIndex] = {
+                ...updatedProvinceInfoList[provinceIndex],
+                projects: [
+                  ...updatedProvinceInfoList[provinceIndex].projects, // Keep existing hotels
+                  ...projects, // Add new projects
+                ],
+              };
+            }
+          });
+
+          return {
+            provinceInfoList: updatedProvinceInfoList,
+            lastProjectsExcelImport: new Date().toISOString(),
+          };
+        });
+      },
+
+      bulkImportHotelsFromExcel: (hotelsData) => {
+        set((state) => {
+          // Complete replacement: clear ALL hotels from ALL provinces
+          // and set only the new imported hotels
+          const updatedProvinceInfoList = state.provinceInfoList.map(
+            (info) => ({
+              ...info,
+              projects: info.projects.filter((p) => p.category === "project"), // Keep only projects
+            })
+          );
+
+          // Add the new hotels to their respective provinces
+          hotelsData.forEach(({ province, hotels }) => {
+            const provinceIndex = updatedProvinceInfoList.findIndex(
+              (info) => info.province.name_fa === province.name_fa
+            );
+
+            if (provinceIndex >= 0) {
+              updatedProvinceInfoList[provinceIndex] = {
+                ...updatedProvinceInfoList[provinceIndex],
+                projects: [
+                  ...updatedProvinceInfoList[provinceIndex].projects, // Keep existing projects
+                  ...hotels, // Add new hotels
+                ],
+              };
+            }
+          });
+
+          return {
+            provinceInfoList: updatedProvinceInfoList,
+            lastHotelsExcelImport: new Date().toISOString(),
+          };
+        });
+      },
+
       getProvinceInfoByName: (provinceId) => {
         const state = get();
         return state.provinceInfoList.find(
@@ -182,6 +256,15 @@ const useProvinceInfoStore = create(
         );
         return provinceInfo ? provinceInfo.province : null;
       },
+
+      getLastProjectsExcelImportTime: () => {
+        return get().lastProjectsExcelImport;
+      },
+
+      getLastHotelsExcelImportTime: () => {
+        return get().lastHotelsExcelImport;
+      },
+
       // Add a function to reset the store to initial state
       resetStore: () => set({ provinceInfoList: initialProvinceInfo }),
     }),
@@ -189,17 +272,19 @@ const useProvinceInfoStore = create(
       name: "province-info-storage",
       // Add migration function to the persist middleware
       migrate: (persistedState, version) => {
-        if (version < 3) {
+        if (version < 4) {
           return {
             ...persistedState,
             provinceInfoList: migrateProvinceData(
               persistedState.provinceInfoList
             ),
+            lastProjectsExcelImport: null,
+            lastHotelsExcelImport: null,
           };
         }
         return persistedState;
       },
-      version: 3, // Increment version to trigger migration
+      version: 4, // Increment version to trigger migration
     }
   )
 );

@@ -125,7 +125,7 @@ const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = ({
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <PeopleIcon sx={{ mr: 2, color: "primary.main" }} />
           <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            مدیریت کارکنان استان‌ها
+            مدیریت نیروی استان‌ها
           </Typography>
           <IconButton onClick={onClose} size="small">
             ✕
@@ -225,7 +225,7 @@ const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = ({
                     <ListItemText
                       primary={province.name_fa}
                       secondary={
-                        hasEmployees ? `${currentCount} نفر` : "بدون کارکن"
+                        hasEmployees ? `${currentCount} نفر` : "بدون نیرو"
                       }
                       sx={{
                         "& .MuiListItemText-primary": {
@@ -300,7 +300,7 @@ const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = ({
         {/* Help Text */}
         {totalEmployees === 0 && (
           <Alert severity="info" sx={{ mt: 2 }}>
-            تعداد کارکنان هر استان را وارد کنید تا در نقشه نمایش داده شود
+            تعداد نیروها هر استان را وارد کنید تا در نقشه نمایش داده شود
           </Alert>
         )}
       </Box>

@@ -211,7 +211,19 @@ export const IranMapContainer = () => {
           zIndex: 1000,
         }}
       >
-        <Tooltip title="مدیریت اندیس‌ها">
+        <Tooltip title="خروج">
+          <IconButton
+            onClick={mapActions.handleLogout}
+            sx={{
+              bgcolor: "error.main",
+              color: "white",
+              "&:hover": { bgcolor: "white", color: "error.main" },
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
+        </Tooltip>
+        {/* <Tooltip title="مدیریت اندیس‌ها">
           <IconButton
             onClick={() => mapState.modals.setSettingsOpen(true)}
             sx={{
@@ -221,9 +233,9 @@ export const IranMapContainer = () => {
           >
             <SettingsIcon />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
 
-        <Tooltip title="مدیریت کارکنان">
+        <Tooltip title="مدیریت نیروها">
           <IconButton
             onClick={() => mapState.modals.setEmployeeModalOpen(true)}
             sx={{
@@ -280,19 +292,6 @@ export const IranMapContainer = () => {
             <ListItemText>JSON</ListItemText>
           </MenuItem>
         </Menu>
-
-        <Tooltip title="خروج">
-          <IconButton
-            onClick={mapActions.handleLogout}
-            sx={{
-              bgcolor: "error.main",
-              color: "white",
-              "&:hover": { bgcolor: "white", color: "error.main" },
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
-        </Tooltip>
       </Box>
 
       {/* Search Bar */}

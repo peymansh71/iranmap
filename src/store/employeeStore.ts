@@ -9,21 +9,25 @@ interface ProvinceEmployee {
 
 interface EmployeeStore {
   employees: ProvinceEmployee[];
+  lastExcelImport: string | null;
   addOrUpdateEmployees: (
     provinceId: number,
     provinceName: string,
     count: number
   ) => void;
+  bulkImportFromExcel: (employees: ProvinceEmployee[]) => void;
   getEmployeesByProvince: (provinceId: number) => ProvinceEmployee | undefined;
   getTotalEmployees: () => number;
   getAllEmployees: () => ProvinceEmployee[];
   clearAllEmployees: () => void;
+  getLastExcelImportTime: () => string | null;
 }
 
 const useEmployeeStore = create<EmployeeStore>()(
   persist(
     (set, get) => ({
       employees: [],
+      lastExcelImport: null,
 
       addOrUpdateEmployees: (
         provinceId: number,
@@ -65,6 +69,13 @@ const useEmployeeStore = create<EmployeeStore>()(
         });
       },
 
+      bulkImportFromExcel: (employees: ProvinceEmployee[]) => {
+        set({
+          employees,
+          lastExcelImport: new Date().toISOString(),
+        });
+      },
+
       getEmployeesByProvince: (provinceId: number) => {
         return get().employees.find((emp) => emp.provinceId === provinceId);
       },
@@ -82,6 +93,10 @@ const useEmployeeStore = create<EmployeeStore>()(
 
       clearAllEmployees: () => {
         set({ employees: [] });
+      },
+
+      getLastExcelImportTime: () => {
+        return get().lastExcelImport;
       },
     }),
     {

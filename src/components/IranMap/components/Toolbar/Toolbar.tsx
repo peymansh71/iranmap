@@ -63,7 +63,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       </Tooltip>
 
       {/* Employee Management */}
-      <Tooltip title="مدیریت کارکنان">
+      <Tooltip title="مدیریت نیروها">
         <IconButton
           onClick={onEmployeeModalOpen}
           sx={{

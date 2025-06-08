@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { styles } from "./styles";
 import { TextField, InputAdornment } from "@mui/material";
 
@@ -12,9 +12,42 @@ const FormInput = ({
   disabled,
   showPassword,
   onTogglePassword,
+  name,
   ...props
 }) => {
   const isPassword = type === "password";
+
+  const inputLabelProps = useMemo(
+    () => ({
+      shrink: true,
+    }),
+    []
+  );
+
+  const inputProps = useMemo(
+    () => ({
+      style: { textAlign: "right", direction: "ltr" },
+      startAdornment: Icon && (
+        <InputAdornment position="start">
+          <Icon style={{ color: "rgb(190, 190, 190)" }} />
+        </InputAdornment>
+      ),
+    }),
+    [Icon]
+  );
+
+  const visibilityIconStyle = useMemo(
+    () => ({
+      color: "rgb(190, 190, 190)",
+      position: "absolute",
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "none",
+      fontSize: "1.2rem",
+    }),
+    []
+  );
 
   return (
     <div style={styles.inputContainer}>
@@ -28,35 +61,14 @@ const FormInput = ({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        name={`${type}-${Math.random()}`}
+        name={name || type}
         fullWidth
-        InputLabelProps={{
-          shrink: true,
-        }}
-        InputProps={{
-          style: { textAlign: "right", direction: "ltr" },
-          startAdornment: Icon && (
-            <InputAdornment position="start">
-              <Icon style={{ color: "rgb(190, 190, 190)" }} />
-            </InputAdornment>
-          ),
-        }}
+        InputLabelProps={inputLabelProps}
+        InputProps={inputProps}
         {...props}
       />
 
-      {VisibilityIcon && (
-        <VisibilityIcon
-          style={{
-            color: "rgb(190, 190, 190)",
-            position: "absolute",
-            right: "12px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            fontSize: "1.2rem",
-          }}
-        />
-      )}
+      {VisibilityIcon && <VisibilityIcon style={visibilityIconStyle} />}
     </div>
   );
 };

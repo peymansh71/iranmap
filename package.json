@@ -2,6 +2,8 @@
   "name": "iran-map",
   "version": "1.0.0",
   "private": true,
+  "main": "public/electron.js",
+  "homepage": "./",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -29,7 +31,14 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "build-electron": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "pack": "electron-builder --dir",
+    "prepack": "npm run build",
+    "predist": "npm run build"
   },
   "eslintConfig": {
     "extends": [
@@ -51,6 +60,34 @@
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
-    "@types/geojson": "^7946.0.16"
+    "@types/geojson": "^7946.0.16",
+    "concurrently": "^9.1.2",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
+    "electron-is-dev": "^3.0.1",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.iranmap.desktop",
+    "productName": "Iran Map",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "public/electron.js",
+      "public/preload.js",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

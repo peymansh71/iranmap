@@ -60,8 +60,13 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const [progress, setProgress] = useState(0);
 
   // Store hooks
-  const { addProvinceInfo, getProvinceByName } = useProvinceInfoStore();
-  const { addOrUpdateEmployees } = useEmployeeStore();
+  const {
+    addProvinceInfo,
+    getProvinceByName,
+    bulkImportProjectsFromExcel,
+    bulkImportHotelsFromExcel,
+  } = useProvinceInfoStore();
+  const { addOrUpdateEmployees, bulkImportFromExcel } = useEmployeeStore();
 
   // Handle file upload
   const handleFileUpload = useCallback(
@@ -130,13 +135,23 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     let errorCount = 0;
 
     try {
-      // Import projects
+      // Import projects using bulk function
       if (importResult.projects && importResult.projects.length > 0) {
-        for (const project of importResult.projects) {
-          try {
+        try {
+          // Group projects by province
+          const projectsByProvince = new Map();
+
+          for (const project of importResult.projects) {
             const province = getProvinceByName(project.provinceName);
             if (province) {
-              // Convert additional fields to the expected format
+              if (!projectsByProvince.has(province.name_fa)) {
+                projectsByProvince.set(province.name_fa, {
+                  province,
+                  projects: [],
+                });
+              }
+
+              // Convert to expected format
               const fields = [
                 { label: "توضیحات", value: project.description },
                 { label: "بودجه", value: project.budget },
@@ -144,7 +159,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 { label: "تاریخ پایان", value: project.endDate },
                 { label: "مدیر پروژه", value: project.manager },
                 { label: "تلفن تماس", value: project.phone },
-              ].filter((f) => f.value); // Only include non-empty fields
+              ].filter((f) => f.value);
 
               const projectData = {
                 name: project.name,
@@ -152,25 +167,46 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 coordinates: project.coordinates,
                 category: "project",
                 isActive: project.isActive,
+                fields,
               };
 
-              addProvinceInfo(province, projectData, fields);
+              projectsByProvince
+                .get(province.name_fa)
+                .projects.push(projectData);
               successCount++;
             } else {
               errorCount++;
             }
-          } catch (error) {
-            errorCount++;
           }
+
+          // Bulk import projects
+          if (projectsByProvince.size > 0) {
+            bulkImportProjectsFromExcel(
+              Array.from(projectsByProvince.values())
+            );
+          }
+        } catch (error) {
+          console.error("Error importing projects:", error);
+          errorCount += importResult.projects.length;
         }
       }
 
-      // Import hotels
+      // Import hotels using bulk function
       if (importResult.hotels && importResult.hotels.length > 0) {
-        for (const hotel of importResult.hotels) {
-          try {
+        try {
+          // Group hotels by province
+          const hotelsByProvince = new Map();
+
+          for (const hotel of importResult.hotels) {
             const province = getProvinceByName(hotel.provinceName);
             if (province) {
+              if (!hotelsByProvince.has(province.name_fa)) {
+                hotelsByProvince.set(province.name_fa, {
+                  province,
+                  hotels: [],
+                });
+              }
+
               const fields = [
                 { label: "توضیحات", value: hotel.description },
                 { label: "ظرفیت", value: hotel.capacity },
@@ -187,37 +223,57 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 coordinates: hotel.coordinates,
                 category: "hotel",
                 isActive: hotel.isActive,
+                fields,
               };
 
-              addProvinceInfo(province, hotelData, fields);
+              hotelsByProvince.get(province.name_fa).hotels.push(hotelData);
               successCount++;
             } else {
               errorCount++;
             }
-          } catch (error) {
-            errorCount++;
           }
+
+          // Bulk import hotels
+          if (hotelsByProvince.size > 0) {
+            bulkImportHotelsFromExcel(Array.from(hotelsByProvince.values()));
+          }
+        } catch (error) {
+          console.error("Error importing hotels:", error);
+          errorCount += importResult.hotels.length;
         }
       }
 
-      // Import employees
+      // Import employees using bulk function
       if (importResult.employees && importResult.employees.length > 0) {
-        for (const employee of importResult.employees) {
-          try {
+        try {
+          // Convert to expected format
+          const employeesData: Array<{
+            provinceId: number;
+            provinceName: string;
+            employeeCount: number;
+          }> = [];
+
+          for (const employee of importResult.employees) {
             const province = getProvinceByName(employee.provinceName);
             if (province) {
-              addOrUpdateEmployees(
-                province.id,
-                province.name_fa,
-                employee.employeeCount
-              );
+              employeesData.push({
+                provinceId: province.id,
+                provinceName: province.name_fa,
+                employeeCount: employee.employeeCount,
+              });
               successCount++;
             } else {
               errorCount++;
             }
-          } catch (error) {
-            errorCount++;
           }
+
+          // Bulk import employees
+          if (employeesData.length > 0) {
+            bulkImportFromExcel(employeesData);
+          }
+        } catch (error) {
+          console.error("Error importing employees:", error);
+          errorCount += importResult.employees.length;
         }
       }
 
@@ -226,7 +282,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         onImportComplete(
           `وارد کردن داده‌ها با موفقیت انجام شد. ${successCount} مورد اضافه شد${
             errorCount > 0 ? ` و ${errorCount} مورد با خطا مواجه شد` : ""
-          }`,
+          }. زمان آخرین به‌روزرسانی ثبت شد.`,
           errorCount > 0 ? "info" : "success"
         );
         setImportResult(null);
@@ -242,7 +298,10 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   }, [
     importResult,
     addProvinceInfo,
+    bulkImportProjectsFromExcel,
+    bulkImportHotelsFromExcel,
     addOrUpdateEmployees,
+    bulkImportFromExcel,
     getProvinceByName,
     onImportComplete,
     onClose,
@@ -261,7 +320,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
   const handleDownloadEmployeesTemplate = () => {
     ExcelTemplateService.generateEmployeesTemplate();
-    onImportComplete("قالب کارکنان دانلود شد", "success");
+    onImportComplete("قالب نیروها دانلود شد", "success");
   };
 
   const handleDownloadCombinedTemplate = () => {
@@ -314,7 +373,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                       <Box>
                         <Typography variant="h6">قالب کامل</Typography>
                         <Typography variant="body2" color="textSecondary">
-                          شامل تمام بخش‌ها: پروژه‌ها، اقامتگاه‌ها و کارکنان
+                          شامل تمام بخش‌ها: پروژه‌ها، اقامتگاه‌ها و نیروها
                         </Typography>
                       </Box>
                       <Button
@@ -378,14 +437,14 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                   <Card sx={{ flex: 1 }}>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
-                        کارکنان
+                        نیروها
                       </Typography>
                       <Typography
                         variant="body2"
                         color="textSecondary"
                         paragraph
                       >
-                        قالب ثبت تعداد کارکنان هر استان
+                        قالب ثبت تعداد نیروها هر استان
                       </Typography>
                       <Button
                         variant="outlined"
@@ -393,7 +452,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                         onClick={handleDownloadEmployeesTemplate}
                         fullWidth
                       >
-                        دانلود قالب کارکنان
+                        دانلود قالب نیروها
                       </Button>
                     </CardContent>
                   </Card>
@@ -509,7 +568,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 {importResult.employees && (
                   <Chip
                     icon={<InfoIcon />}
-                    label={`${importResult.employees.length} استان (کارکنان)`}
+                    label={`${importResult.employees.length} استان (نیروها)`}
                     color="success"
                   />
                 )}
@@ -588,7 +647,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 <Card sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
-                      کارکنان ({importResult.employees.length} استان)
+                      نیروهای ({importResult.employees.length} استان)
                     </Typography>
                     <List dense>
                       {importResult.employees.map((employee, index) => (
@@ -598,7 +657,7 @@ const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                           </ListItemIcon>
                           <ListItemText
                             primary={employee.provinceName}
-                            secondary={`${employee.employeeCount} کارکن`}
+                            secondary={`${employee.employeeCount} نیرو`}
                           />
                         </ListItem>
                       ))}
