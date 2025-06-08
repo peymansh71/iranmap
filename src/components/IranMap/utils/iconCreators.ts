@@ -1,34 +1,16 @@
 import L from "leaflet";
-import {
-  PROJECT_ICONS,
-  HOTEL_ICON,
-  HOTEL_EMOJI_OPTIONS,
-} from "../constants/index.ts";
+import { PROJECT_ICONS } from "../constants/index.ts";
 
-// Get hotel icon emoji
 export const getHotelIcon = () => {
-  return HOTEL_ICON;
+  return "🛏️";
 };
 
-// Get hotel icon based on hotel type for better visual distinction
 export const getHotelIconByType = (hotelType: string) => {
-  switch (hotelType) {
-    case "ویلا":
-      return HOTEL_EMOJI_OPTIONS.cabin; // 🏘️ for villas
-    case "اپارتمان":
-      return HOTEL_EMOJI_OPTIONS.building; // 🏢 for apartments
-    case "هتل":
-      return HOTEL_EMOJI_OPTIONS.hotel; // 🏨 for hotels
-    case "هتل آپارتمان":
-      return HOTEL_EMOJI_OPTIONS.resort; // 🏩 for hotel apartments
-    default:
-      return HOTEL_EMOJI_OPTIONS.hotel; // Default to hotel emoji
-  }
+  return "🛏️";
 };
 
-// Get project icon emoji based on project type
 export const getProjectIcon = (projectType: string) => {
-  return PROJECT_ICONS[projectType] || "🏗️"; // Default to construction if type not found
+  return PROJECT_ICONS[projectType] || "🏗️";
 };
 
 // Create custom icons for different project/hotel types
@@ -41,8 +23,6 @@ export const createCustomIcon = (
   const isHotel = category === "hotel";
 
   if (isHotel) {
-    // Use hotel emoji directly with enhanced styling for better visual appeal
-    // Different emoji based on hotel type for better distinction
     const hotelEmoji = projectType
       ? getHotelIconByType(projectType)
       : getHotelIcon();
@@ -52,9 +32,9 @@ export const createCustomIcon = (
         <div class="hotel-marker ${
           isActive ? "active-hotel" : "inactive-hotel"
         }" style="
-          font-size: 28px;
-          width: 32px; 
-          height: 32px; 
+          font-size: 24px;
+          width: 24px; 
+          height: 24px; 
           display: flex;
           align-items: center;
           justify-content: center;
@@ -114,11 +94,11 @@ export const createPersonIcon = (employeeCount: number) => {
   return L.divIcon({
     html: `
       <div class="person-marker" style="
-        background-color: #4CAF50;
+        background-color:rgb(249, 252, 105);
         color: white;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
+        width: 25px;
+        height: 25px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -134,15 +114,15 @@ export const createPersonIcon = (employeeCount: number) => {
           position: absolute;
           top: -8px;
           right: -8px;
-          background-color: #FF5722;
+          background-color:rgb(67, 76, 5);
           color: white;
           border-radius: 50%;
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
+          font-size: 8px;
           font-weight: bold;
           border: 1px solid white;
         ">${employeeCount > 999 ? "999+" : employeeCount}</div>
@@ -176,7 +156,7 @@ export const addMarkerStyles = () => {
     }
     .inactive-hotel {
       position: relative;
-      opacity: 0.7;
+      opacity: 1;
     }
     .active-indicator {
       position: absolute;
@@ -196,7 +176,7 @@ export const addMarkerStyles = () => {
       right: -3px;
       width: 10px;
       height: 10px;
-      background-color: #f44336;
+      background-color:rgb(247, 22, 6);
       border-radius: 50%;
       animation: blink-red 1.5s infinite;
       box-shadow: 0 0 4px rgba(244, 67, 54, 0.6);
