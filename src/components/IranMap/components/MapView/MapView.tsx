@@ -1,5 +1,5 @@
 import React from "react";
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, GeoJSON } from "react-leaflet";
 import { FeatureCollection } from "geojson";
 import { MAP_CONFIG } from "../../constants/index.ts";
 import "leaflet/dist/leaflet.css";
@@ -23,21 +23,25 @@ export const MapView: React.FC<MapViewProps> = ({
     <MapContainer
       center={MAP_CONFIG.center}
       zoom={MAP_CONFIG.zoom}
-      style={{ height: "100%", width: "100%" }}
+      style={{
+        height: "100%",
+        width: "100%",
+        backgroundColor: "#f0f8ff", // Light blue background instead of tiles
+      }}
       maxBounds={MAP_CONFIG.maxBounds}
       maxBoundsViscosity={MAP_CONFIG.maxBoundsViscosity}
     >
-      {/* Base map */}
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      {/* Remove TileLayer for offline functionality */}
+      {/* <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /> */}
 
       {/* Gray mask around Iran */}
       <GeoJSON
         data={iranMask}
         style={{
-          fillColor: "#ccc",
-          fillOpacity: 0.7,
+          fillColor: "#e6e6e6",
+          fillOpacity: 0.8,
           color: "#ccc",
-          weight: 0,
+          weight: 1,
         }}
       />
 

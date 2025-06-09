@@ -1,10 +1,7 @@
 {
   "name": "iran-map",
-  "version": "1.0.3",
-  "author": "Peyman Shahbazi",
+  "version": "1.0.0",
   "private": true,
-  "main": "public/electron.js",
-  "homepage": "https://peymanshahbazi.github.io/iran-map",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -15,6 +12,7 @@
     "d3-scale-chromatic": "^3.1.0",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "express": "^4.18.2",
     "file-saver": "^2.0.5",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
@@ -31,20 +29,13 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "build:optimized": "GENERATE_SOURCEMAP=false npm run build",
-    "analyze": "npx webpack-bundle-analyzer build/static/js/*.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "build-electron": "npm run build:optimized && electron .",
-    "dist": "npm run build:optimized && electron-builder",
-    "dist:win": "npm run build:optimized && npx electron-builder --win",
-    "pack": "electron-builder --dir",
-    "prepack": "npm run build:optimized",
-    "predist": "npm run build:optimized",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "server": "node server.js",
+    "build:all": "npm run build && npm run build:windows",
+    "build:windows": "pkg server.js --targets node18-win-x64 --output dist/iran-map-windows.exe",
+    "package:windows": "node build-for-windows.js",
+    "package:portable": "npm run build && npm run create:portable"
   },
   "eslintConfig": {
     "extends": [
@@ -67,56 +58,17 @@
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/geojson": "^7946.0.16",
-    "compression-webpack-plugin": "^11.1.0",
-    "concurrently": "^9.1.2",
-    "electron": "^25.9.0",
-    "electron-builder": "^24.13.3",
-    "gh-pages": "^6.3.0",
-    "wait-on": "^8.0.3",
-    "webpack-bundle-analyzer": "^4.10.2"
+    "pkg": "^5.8.1"
   },
-  "build": {
-    "appId": "com.peymanshahbazi.iranmap.v2",
-    "productName": "Iran Map v2",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
+  "pkg": {
+    "assets": [
       "build/**/*",
-      "public/electron.js",
-      "public/preload.js",
-      "node_modules/**/*"
+      "build/*",
+      "build"
     ],
-    "compression": "maximum",
-    "extraResources": [],
-    "icon": "public/assets/icon.png",
-    "mac": {
-      "category": "public.app-category.productivity",
-      "target": "dmg",
-      "icon": "public/assets/icon.png"
-    },
-    "win": {
-      "target": {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      },
-      "compression": "maximum",
-      "artifactName": "IranMap-v${version}-Windows-x64-Setup.${ext}",
-      "icon": "public/assets/icon.png"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "public/assets/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Iran Map v2"
-    }
+    "targets": [
+      "node18-win-x64"
+    ],
+    "scripts": "server.js"
   }
 }
