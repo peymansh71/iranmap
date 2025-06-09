@@ -1,6 +1,7 @@
 {
   "name": "iran-map",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "author": "Peyman Shahbazi",
   "private": true,
   "main": "public/electron.js",
   "homepage": "./",
@@ -86,9 +87,11 @@
     ],
     "compression": "maximum",
     "extraResources": [],
+    "icon": "public/assets/icon.png",
     "mac": {
       "category": "public.app-category.productivity",
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "public/assets/icon.png"
     },
     "win": {
       "target": {
@@ -98,10 +101,12 @@
         ]
       },
       "compression": "maximum",
-      "artifactName": "${productName}-${version}-Setup.${ext}"
+      "artifactName": "IranMap-v${version}-Windows-x64-Setup.${ext}",
+      "icon": "public/assets/icon.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "public/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
