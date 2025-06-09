@@ -129,9 +129,9 @@ export class ExcelTemplateService {
   static generateEmployeesTemplate() {
     const headers = [
       "استان (اجباری)",
-      "تعداد کارکنان (اجباری)",
+      "تعداد نیروها (اجباری)",
       "توضیحات",
-      "نوع کارکنان",
+      "نوع نیروها",
       "مسئول استان",
       "تلفن تماس",
       "ایمیل",
@@ -141,7 +141,7 @@ export class ExcelTemplateService {
       [
         "تهران",
         25,
-        "کارکنان بخش فنی و اجرایی",
+        "نیروهای بخش فنی و اجرایی",
         "مهندس و تکنسین",
         "علی رضایی",
         "02122334455",
@@ -150,7 +150,7 @@ export class ExcelTemplateService {
       [
         "اصفهان",
         15,
-        "کارکنان نظارت و کنترل کیفیت",
+        "نیروهای نظارت و کنترل کیفیت",
         "ناظر و بازرس",
         "محمد احمدی",
         "03133445566",
@@ -159,17 +159,17 @@ export class ExcelTemplateService {
     ];
 
     const instructions = [
-      "راهنمای تکمیل فایل کارکنان:",
+      "راهنمای تکمیل فایل نیروها:",
       "1. نام استان باید دقیقاً مطابق نام‌های فارسی استان‌ها باشد",
-      "2. تعداد کارکنان باید عدد مثبت باشد",
+      "2. تعداد نیروها باید عدد مثبت باشد",
       "3. هر استان فقط یک سطر داشته باشد",
-      "4. در صورت وجود کارکنان قبلی، اعداد جدید جایگزین می‌شود",
+      "4. در صورت وجود نیروها قبلی، اعداد جدید جایگزین می‌شود",
       "5. سطرهای نمونه را می‌توانید حذف کنید",
     ];
 
     return this.createExcelFile(
       {
-        sheetName: "کارکنان",
+        sheetName: "نیروها",
         headers,
         sampleData,
         instructions,
@@ -256,9 +256,9 @@ export class ExcelTemplateService {
     const employeesData = [
       [
         "استان (اجباری)",
-        "تعداد کارکنان (اجباری)",
+        "تعداد نیروها (اجباری)",
         "توضیحات",
-        "نوع کارکنان",
+        "نوع نیروها",
         "مسئول استان",
         "تلفن تماس",
         "ایمیل",
@@ -266,7 +266,7 @@ export class ExcelTemplateService {
       [
         "تهران",
         25,
-        "کارکنان بخش فنی و اجرایی",
+        "نیروهای بخش فنی و اجرایی",
         "مهندس و تکنسین",
         "علی رضایی",
         "02122334455",
@@ -275,7 +275,7 @@ export class ExcelTemplateService {
       [
         "اصفهان",
         15,
-        "کارکنان نظارت و کنترل کیفیت",
+        "نیروهای نظارت و کنترل کیفیت",
         "ناظر و بازرس",
         "محمد احمدی",
         "03133445566",
@@ -283,7 +283,7 @@ export class ExcelTemplateService {
       ],
     ];
     const employeesSheet = XLSX.utils.aoa_to_sheet(employeesData);
-    XLSX.utils.book_append_sheet(workbook, employeesSheet, "کارکنان");
+    XLSX.utils.book_append_sheet(workbook, employeesSheet, "نیروها");
 
     // Instructions Sheet
     const instructionsData = [
@@ -292,7 +292,7 @@ export class ExcelTemplateService {
       ["این فایل شامل 3 شیت برای ورود اطلاعات است:"],
       ["1. پروژه‌ها: برای ثبت پروژه‌های عمرانی"],
       ["2. اقامتگاه‌ها: برای ثبت هتل‌ها و اماکن اقامتی"],
-      ["3. کارکنان: برای ثبت تعداد کارکنان در هر استان"],
+      ["3. نیروها: برای ثبت تعداد نیروها در هر استان"],
       [""],
       ["نکات مهم:"],
       ["- ستون‌های با کلمه (اجباری) حتماً باید تکمیل شوند"],
@@ -400,9 +400,9 @@ export class ExcelTemplateService {
           }
 
           // Parse Employees sheet
-          if (workbook.SheetNames.includes("کارکنان")) {
+          if (workbook.SheetNames.includes("نیروها")) {
             try {
-              const employeesSheet = workbook.Sheets["کارکنان"];
+              const employeesSheet = workbook.Sheets["نیروها"];
               const employeesData = XLSX.utils.sheet_to_json(employeesSheet, {
                 header: 1,
               });
@@ -410,7 +410,7 @@ export class ExcelTemplateService {
                 employeesData as any[][]
               );
             } catch (error) {
-              errors.push(`خطا در پردازش شیت کارکنان: ${error}`);
+              errors.push(`خطا در پردازش شیت نیروها: ${error}`);
             }
           }
 
