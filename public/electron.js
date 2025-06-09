@@ -1,6 +1,8 @@
 const { app, BrowserWindow, Menu, ipcMain, shell } = require("electron");
 const path = require("path");
-const isDev = require("electron-is-dev");
+
+// Simple development check instead of electron-is-dev
+const isDev = !app.isPackaged;
 
 let mainWindow;
 
@@ -15,6 +17,9 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
       preload: path.join(__dirname, "preload.js"),
     },
     icon: path.join(__dirname, "assets/icon.png"), // Add your app icon
@@ -27,16 +32,37 @@ function createWindow() {
     ? "http://localhost:3000"
     : `file://${path.join(__dirname, "../build/index.html")}`;
 
+  console.log("Loading URL:", startUrl);
+  console.log("isDev:", isDev);
+  console.log("__dirname:", __dirname);
+
   mainWindow.loadURL(startUrl);
 
   // Show window when ready to prevent visual flash
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
+    console.log("Window shown successfully");
 
     // Focus on window
     if (isDev) {
       mainWindow.webContents.openDevTools();
     }
+  });
+
+  // Add error handling for failed loads
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (event, errorCode, errorDescription) => {
+      console.error("Failed to load:", errorCode, errorDescription);
+      // Fallback: try to show the window anyway and open dev tools to debug
+      mainWindow.show();
+      mainWindow.webContents.openDevTools();
+    }
+  );
+
+  // Add ready state logging
+  mainWindow.webContents.on("did-finish-load", () => {
+    console.log("Content loaded successfully");
   });
 
   // Handle window closed

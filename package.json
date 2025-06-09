@@ -1,10 +1,10 @@
 {
   "name": "iran-map",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "author": "Peyman Shahbazi",
   "private": true,
   "main": "public/electron.js",
-  "homepage": "./",
+  "homepage": "https://peymanshahbazi.github.io/iran-map",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -15,7 +15,6 @@
     "d3-scale-chromatic": "^3.1.0",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
-    "electron-is-dev": "^3.0.1",
     "file-saver": "^2.0.5",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
@@ -43,7 +42,9 @@
     "dist:win": "npm run build:optimized && npx electron-builder --win",
     "pack": "electron-builder --dir",
     "prepack": "npm run build:optimized",
-    "predist": "npm run build:optimized"
+    "predist": "npm run build:optimized",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -68,14 +69,15 @@
     "@types/geojson": "^7946.0.16",
     "compression-webpack-plugin": "^11.1.0",
     "concurrently": "^9.1.2",
-    "electron": "^36.4.0",
-    "electron-builder": "^26.0.12",
+    "electron": "^25.9.0",
+    "electron-builder": "^24.13.3",
+    "gh-pages": "^6.3.0",
     "wait-on": "^8.0.3",
     "webpack-bundle-analyzer": "^4.10.2"
   },
   "build": {
-    "appId": "com.iranmap.desktop",
-    "productName": "Iran Map",
+    "appId": "com.peymanshahbazi.iranmap.v2",
+    "productName": "Iran Map v2",
     "directories": {
       "output": "dist"
     },
@@ -111,7 +113,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": true
+      "deleteAppDataOnUninstall": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Iran Map v2"
     }
   }
 }
