@@ -1,0 +1,40 @@
+IRAN MAP APPLICATION - WINDOWS INSTALLATION GUIDE
+==================================================
+
+Hello! You've received the Iran Map application for Windows.
+
+QUICK START (2 steps):
+1. Unzip the attached file anywhere on your computer
+2. Double-click "start-iran-map.bat" to run the app
+
+That's it! Your browser will open automatically to the application.
+
+WHAT'S INCLUDED:
+- iran-map-windows.exe (Main application - 38MB)
+- start-iran-map.bat (Easy startup - just double-click this!)
+- start-iran-map.ps1 (Alternative PowerShell version)
+- README.txt (Detailed instructions)
+
+SYSTEM REQUIREMENTS:
+✓ Windows 10 or later
+✓ Any modern browser (Chrome, Firefox, Edge)
+✓ No additional software needed
+
+HOW TO USE:
+1. Unzip "iran-map-windows-v1.0.zip" to any folder (like Desktop)
+2. Open the unzipped folder
+3. Double-click "start-iran-map.bat"
+4. Wait for your browser to open (takes 3-5 seconds)
+5. Use the Iran Map application normally
+6. Close the black command window to stop the app
+
+TROUBLESHOOTING:
+- If Windows shows a security warning, click "More info" → "Run anyway"
+- If port 3000 is busy, restart your computer or contact support
+- The app works completely offline - no internet required
+
+SUPPORT:
+If you have any issues, please contact the person who sent you this file.
+
+Application Version: 1.0.0
+Built: June 9, 2024 
