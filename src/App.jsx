@@ -9,7 +9,6 @@ import { IranMapContainer } from "./components/IranMap/IranMapContainer.tsx";
 import Login from "./components/Login/Login";
 import useAuthStore from "./store/authStore";
 import "./styles/global.css";
-import "./electron.css";
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
