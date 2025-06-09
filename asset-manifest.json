@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/iran-map/static/css/main.e7530707.css",
+    "main.js": "/iran-map/static/js/main.8ec6c3a3.js",
+    "index.html": "/iran-map/index.html",
+    "main.e7530707.css.map": "/iran-map/static/css/main.e7530707.css.map",
+    "main.8ec6c3a3.js.map": "/iran-map/static/js/main.8ec6c3a3.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e7530707.css",
+    "static/js/main.8ec6c3a3.js"
+  ]
+}
