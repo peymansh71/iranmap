@@ -1,44 +1,11 @@
 import React from "react";
-import { Box, Typography, Chip, Tooltip } from "@mui/material";
+import { Box, Typography, Chip } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PeopleIcon from "@mui/icons-material/People";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import HotelIcon from "@mui/icons-material/Hotel";
 import useEmployeeStore from "../../../../store/employeeStore.ts";
 import useProvinceInfoStore from "../../../../store/provinceInfoStore";
-
-const formatDateTime = (isoString: string | null): string => {
-  if (!isoString) return "هرگز";
-
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  // Format Persian date and time
-  const persianDate = date.toLocaleDateString("fa-IR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  const persianTime = date.toLocaleTimeString("fa-IR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  let relativeTime = "";
-  if (diffDays > 0) {
-    relativeTime = `${diffDays} روز پیش`;
-  } else if (diffHours > 0) {
-    relativeTime = `${diffHours} ساعت پیش`;
-  } else {
-    relativeTime = "همین الان";
-  }
-
-  return `${persianDate} - ${persianTime} (${relativeTime})`;
-};
 
 const getRelativeTime = (isoString: string | null): string => {
   if (!isoString) return "آپلود نشده";
