@@ -47,6 +47,7 @@ export const useMapState = () => {
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(
     null
   );
+  const [offlineMode, setOfflineMode] = useState<boolean>(false);
 
   // Notification state
   const [notification, setNotification] = useState<NotificationState>({
@@ -264,6 +265,8 @@ export const useMapState = () => {
       setNotification,
       newIndex,
       setNewIndex,
+      offlineMode,
+      setOfflineMode,
     },
     store: {
       indexes,

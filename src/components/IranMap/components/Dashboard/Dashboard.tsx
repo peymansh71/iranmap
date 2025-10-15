@@ -1,8 +1,18 @@
 import React, { useState } from "react";
-import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Collapse,
+  Switch,
+  FormControlLabel,
+} from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import WifiOffIcon from "@mui/icons-material/WifiOff";
+import WifiIcon from "@mui/icons-material/Wifi";
 import { AdvancedStats } from "../../types";
 import LastImportStatus from "./LastImportStatus.tsx";
 
@@ -18,6 +28,8 @@ interface DashboardProps {
   onToggleEmployeeVisibility: () => void;
   totalVisible: number;
   totalItems: number;
+  offlineMode: boolean;
+  onToggleOfflineMode: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -32,6 +44,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onToggleEmployeeVisibility,
   totalVisible,
   totalItems,
+  offlineMode,
+  onToggleOfflineMode,
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     projectTypes: false,
@@ -185,6 +199,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <Collapse in={expandedSections.importStatus}>
                   <LastImportStatus />
                 </Collapse>
+              </Box>
+
+              {/* Offline Mode Toggle */}
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 1.5,
+                  bgcolor: offlineMode
+                    ? "rgba(255, 193, 7, 0.05)"
+                    : "rgba(76, 175, 80, 0.05)",
+                  borderRadius: 2,
+                  border: offlineMode
+                    ? "1px solid rgba(255, 193, 7, 0.2)"
+                    : "1px solid rgba(76, 175, 80, 0.2)",
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={offlineMode}
+                      onChange={onToggleOfflineMode}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {offlineMode ? (
+                        <WifiOffIcon fontSize="small" />
+                      ) : (
+                        <WifiIcon fontSize="small" />
+                      )}
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 600, fontSize: "0.85rem" }}
+                        >
+                          {offlineMode ? "حالت آفلاین" : "حالت آنلاین"}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.7rem" }}
+                        >
+                          {offlineMode
+                            ? "نقشه محلی - نیاز به اینترنت ندارد"
+                            : "نقشه کامل - نیاز به اینترنت دارد"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                  sx={{ m: 0, width: "100%" }}
+                />
               </Box>
 
               {/* Filter Status - Compact */}

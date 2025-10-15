@@ -2,6 +2,7 @@ import React from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import { FeatureCollection } from "geojson";
 import { MAP_CONFIG } from "../../constants/index.ts";
+import { OfflineMapView } from "./OfflineMapView.tsx";
 import "leaflet/dist/leaflet.css";
 
 interface MapViewProps {
@@ -10,6 +11,7 @@ interface MapViewProps {
   onEachProvince: (feature: any, layer: any) => void;
   style: (feature: any) => any;
   children?: React.ReactNode;
+  offlineMode?: boolean;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -18,7 +20,24 @@ export const MapView: React.FC<MapViewProps> = ({
   onEachProvince,
   style,
   children,
+  offlineMode = false,
 }) => {
+  // Use OfflineMapView if offline mode is enabled
+  if (offlineMode || !navigator.onLine) {
+    return (
+      <OfflineMapView
+        iranProvinces={iranProvinces}
+        iranMask={iranMask}
+        onEachProvince={onEachProvince}
+        style={style}
+        offlineMode={offlineMode}
+      >
+        {children}
+      </OfflineMapView>
+    );
+  }
+
+  // Original online map
   return (
     <MapContainer
       center={MAP_CONFIG.center}

@@ -22,6 +22,7 @@
     "react-scripts": "5.0.1",
     "react-simple-maps": "^3.0.0",
     "react-tooltip": "^5.28.1",
+    "reactflow": "^11.11.4",
     "stylis-plugin-rtl": "^2.1.1",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.4"
@@ -33,9 +34,10 @@
     "eject": "react-scripts eject",
     "server": "node server.js",
     "build:all": "npm run build && npm run build:windows",
-    "build:windows": "pkg server.js --targets node18-win-x64 --output dist/iran-map-windows.exe",
+    "build:windows": "pkg server.js --targets node14-win-x64 --output dist/iran-map-windows.exe",
     "package:windows": "node build-for-windows.js",
-    "package:portable": "npm run build && npm run create:portable"
+    "package:portable": "npm run build && npm run create:portable",
+    "download:tiles": "node scripts/download-iran-tiles.js"
   },
   "eslintConfig": {
     "extends": [
@@ -67,7 +69,7 @@
       "build"
     ],
     "targets": [
-      "node18-win-x64"
+      "node14-win-x64"
     ],
     "scripts": "server.js"
   }

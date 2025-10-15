@@ -429,6 +429,7 @@ export const IranMapContainer = () => {
         iranMask={iranMask}
         onEachProvince={onEachProvince}
         style={style}
+        offlineMode={mapState.ui.offlineMode}
       >
         <MapMarkers
           projects={allProjects}
@@ -455,6 +456,10 @@ export const IranMapContainer = () => {
         onToggleEmployeeVisibility={mapState.handlers.toggleEmployeeVisibility}
         totalVisible={totalVisible}
         totalItems={allProjects.length}
+        offlineMode={mapState.ui.offlineMode}
+        onToggleOfflineMode={() =>
+          mapState.ui.setOfflineMode(!mapState.ui.offlineMode)
+        }
       />
 
       {/* Selection Modal */}

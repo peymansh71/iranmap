@@ -33,7 +33,7 @@ try {
   }
 
   execSync(
-    "npx pkg server.js --targets node18-win-x64 --output dist/iran-map-windows.exe",
+    "npx pkg server.js --targets node14-win-x64 --output dist/iran-map-windows.exe",
     { stdio: "inherit" }
   );
   console.log("✅ Windows executable created\n");

@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { IranMapContainer } from "./components/IranMap/IranMapContainer.tsx";
 import Login from "./components/Login/Login";
+import ReactFlowTest from "./components/ReactFlowTest/ReactFlowTest";
 import useAuthStore from "./store/authStore";
 import "./styles/global.css";
 
@@ -21,6 +22,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/react-flow-test" element={<ReactFlowTest />} />
           <Route
             path="/"
             element={
