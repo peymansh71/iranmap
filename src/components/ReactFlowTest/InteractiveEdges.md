@@ -26,7 +26,7 @@ The React Flow component now features an **interactive edge visibility system** 
 ```
 Click Node → Show connected edges
 Click Same Node → Hide edges
-Click Different Node → Show new edges (hide previous)
+Click Different Node → Hide previous edges, show new edges
 ```
 
 ### **2. Edge Visibility States**

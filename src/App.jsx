@@ -8,6 +8,7 @@ import {
 import { IranMapContainer } from "./components/IranMap/IranMapContainer.tsx";
 import Login from "./components/Login/Login";
 import ReactFlowTest from "./components/ReactFlowTest/ReactFlowTest";
+import WBSFlowTest from "./components/ReactFlowTest/WBSFlowTest";
 import useAuthStore from "./store/authStore";
 import "./styles/global.css";
 
@@ -23,6 +24,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/react-flow-test" element={<ReactFlowTest />} />
+          <Route path="/wbs-flow-test" element={<WBSFlowTest />} />
           <Route
             path="/"
             element={

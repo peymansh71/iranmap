@@ -261,7 +261,13 @@ const ReactFlowTest = () => {
         const connectedEdges = allEdgesData.filter(
           (edge) => edge.source === nodeId || edge.target === nodeId
         );
+        console.log('=== REACT FLOW DEBUG ===');
+        console.log('Clicked node ID:', nodeId);
+        console.log('All edges data:', allEdgesData);
+        console.log('Connected edges found:', connectedEdges);
+        console.log('Current edges before:', edges);
         setEdges(connectedEdges);
+        console.log('Edges set to:', connectedEdges);
       }
     },
     [selectedNodeId, allEdgesData, setEdges]
