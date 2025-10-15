@@ -17,93 +17,139 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-const initialNodes = [
-  {
-    id: "1",
-    type: "custom",
-    data: { label: "Input Node" },
-    position: { x: 250, y: 25 },
-  },
-  {
-    id: "2",
-    type: "custom",
-    data: { label: "Default Node" },
-    position: { x: 100, y: 125 },
-  },
-  {
-    id: "3",
-    type: "custom",
-    data: { label: "Output Node" },
-    position: { x: 250, y: 250 },
-  },
-  {
-    id: "4",
-    type: "custom",
-    data: { label: "Another Node" },
-    position: { x: 400, y: 125 },
-  },
-];
+// Generate structured nodes in 3 columns
+const generateStructuredNodes = () => {
+  const nodes = [];
+  const edges = [];
 
-const initialEdges = [
-  {
-    id: "e1-2",
-    source: "1",
-    target: "2",
-    sourceHandle: "source",
-    targetHandle: "target",
-  },
-  {
-    id: "e1-3",
-    source: "1",
-    target: "3",
-    sourceHandle: "source",
-    targetHandle: "target",
-  },
-  {
-    id: "e2-4",
-    source: "2",
-    target: "4",
-    sourceHandle: "source",
-    targetHandle: "target",
-  },
-  {
-    id: "e3-4",
-    source: "3",
-    target: "4",
-    sourceHandle: "source",
-    targetHandle: "target",
-  },
-];
+  // Column 1: 10 nodes (Parents)
+  const column1Nodes = [];
+  for (let i = 1; i <= 10; i++) {
+    const nodeId = `col1-${i}`;
+    column1Nodes.push(nodeId);
+    nodes.push({
+      id: nodeId,
+      type: "custom",
+      data: { label: `Parent ${i}` },
+      position: { x: 100, y: 50 + (i - 1) * 60 },
+    });
+  }
+
+  // Column 2: 20 nodes (Children of Column 1)
+  const column2Nodes = [];
+  for (let i = 1; i <= 20; i++) {
+    const nodeId = `col2-${i}`;
+    column2Nodes.push(nodeId);
+    nodes.push({
+      id: nodeId,
+      type: "custom",
+      data: { label: `Child ${i}` },
+      position: { x: 400, y: 30 + (i - 1) * 30 },
+    });
+
+    // Randomly connect to Column 1 parents
+    const randomParent =
+      column1Nodes[Math.floor(Math.random() * column1Nodes.length)];
+    edges.push({
+      id: `edge-${randomParent}-${nodeId}`,
+      source: randomParent,
+      target: nodeId,
+      sourceHandle: "source",
+      targetHandle: "target",
+    });
+  }
+
+  // Column 3: 10 nodes (Children of Column 2)
+  const column3Nodes = [];
+  for (let i = 1; i <= 10; i++) {
+    const nodeId = `col3-${i}`;
+    column3Nodes.push(nodeId);
+    nodes.push({
+      id: nodeId,
+      type: "custom",
+      data: { label: `Grandchild ${i}` },
+      position: { x: 700, y: 50 + (i - 1) * 60 },
+    });
+
+    // Randomly connect to Column 2 children
+    const randomChild =
+      column2Nodes[Math.floor(Math.random() * column2Nodes.length)];
+    edges.push({
+      id: `edge-${randomChild}-${nodeId}`,
+      source: randomChild,
+      target: nodeId,
+      sourceHandle: "source",
+      targetHandle: "target",
+    });
+  }
+
+  return { nodes, edges };
+};
+
+const { nodes: initialNodes, edges: allEdges } = generateStructuredNodes();
+// Start with no visible edges
+const initialEdges = [];
 
 // Performance monitoring component
-const PerformanceMonitor = ({ nodeCount, edgeCount, renderTime, fps }) => (
-  <div
-    style={{
-      position: "absolute",
-      top: 10,
-      left: 10,
-      background: "rgba(0, 0, 0, 0.8)",
-      color: "white",
-      padding: "10px",
-      borderRadius: "5px",
-      fontFamily: "monospace",
-      fontSize: "12px",
-      zIndex: 1000,
-      minWidth: "200px",
-    }}
-  >
-    <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
-      📊 Performance Monitor
+const PerformanceMonitor = ({
+  nodeCount,
+  edgeCount,
+  renderTime,
+  fps,
+  selectedNodeId,
+  totalEdges,
+}) => {
+  const getColumnInfo = () => {
+    if (nodeCount === 40) {
+      return "📋 3-Column Structure: 10-20-10";
+    } else if (nodeCount > 40) {
+      return `📈 Extended: ${nodeCount} total nodes`;
+    } else {
+      return `📊 Custom: ${nodeCount} nodes`;
+    }
+  };
+
+  const getEdgeInfo = () => {
+    if (selectedNodeId) {
+      return `🔗 Showing edges for: ${selectedNodeId}`;
+    } else {
+      return `🔗 Total edges: ${totalEdges} (click node to view)`;
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 10,
+        left: 10,
+        background: "rgba(0, 0, 0, 0.8)",
+        color: "white",
+        padding: "10px",
+        borderRadius: "5px",
+        fontFamily: "monospace",
+        fontSize: "12px",
+        zIndex: 1000,
+        minWidth: "250px",
+      }}
+    >
+      <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
+        📊 Performance Monitor
+      </div>
+      <div>{getColumnInfo()}</div>
+      <div>Nodes: {nodeCount}</div>
+      <div>Visible Edges: {edgeCount}</div>
+      <div>{getEdgeInfo()}</div>
+      <div>Render Time: {renderTime}ms</div>
+      <div>FPS: {fps}</div>
+      <div style={{ marginTop: "5px", fontSize: "10px", opacity: 0.7 }}>
+        {nodeCount > 100 && "⚠️ High node count - consider optimization"}
+        {nodeCount === 40 && "✅ Optimal structured layout"}
+        {selectedNodeId && "👆 Click same node to hide edges"}
+      </div>
     </div>
-    <div>Nodes: {nodeCount}</div>
-    <div>Edges: {edgeCount}</div>
-    <div>Render Time: {renderTime}ms</div>
-    <div>FPS: {fps}</div>
-    <div style={{ marginTop: "5px", fontSize: "10px", opacity: 0.7 }}>
-      {nodeCount > 100 && "⚠️ High node count - consider optimization"}
-    </div>
-  </div>
-);
+  );
+};
 
 // Optimized node component
 const OptimizedNode = React.memo(({ data, selected }) => (
@@ -144,6 +190,8 @@ const nodeTypes = {
 const ReactFlowTest = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [allEdgesData, setAllEdgesData] = useState(allEdges);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [performanceMetrics, setPerformanceMetrics] = useState({
     renderTime: 0,
     fps: 60,
@@ -198,6 +246,27 @@ const ReactFlowTest = () => {
     [setEdges]
   );
 
+  // Handle node click to show/hide edges
+  const onNodeClick = useCallback(
+    (event, node) => {
+      const nodeId = node.id;
+
+      if (selectedNodeId === nodeId) {
+        // If clicking the same node, hide all edges
+        setSelectedNodeId(null);
+        setEdges([]);
+      } else {
+        // Show edges connected to the clicked node
+        setSelectedNodeId(nodeId);
+        const connectedEdges = allEdgesData.filter(
+          (edge) => edge.source === nodeId || edge.target === nodeId
+        );
+        setEdges(connectedEdges);
+      }
+    },
+    [selectedNodeId, allEdgesData, setEdges]
+  );
+
   // Generate random nodes
   const addRandomNodes = useCallback(
     (count = 10) => {
@@ -236,11 +305,36 @@ const ReactFlowTest = () => {
     [nodes, setNodes, setEdges]
   );
 
-  // Clear all nodes
+  // Clear all nodes and reset to structured layout
   const clearAllNodes = useCallback(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [setNodes, setEdges]);
+    const { nodes: newNodes, edges: newEdges } = generateStructuredNodes();
+    setNodes(newNodes);
+    setAllEdgesData(newEdges);
+    setEdges([]); // Hide all edges by default
+    setSelectedNodeId(null);
+  }, [setNodes, setEdges, setAllEdgesData]);
+
+  // Regenerate structured layout with new random connections
+  const regenerateStructure = useCallback(() => {
+    const { nodes: newNodes, edges: newEdges } = generateStructuredNodes();
+    setNodes(newNodes);
+    setAllEdgesData(newEdges);
+    setEdges([]); // Hide all edges by default
+    setSelectedNodeId(null);
+  }, [setNodes, setEdges, setAllEdgesData]);
+
+  // Toggle all edges visibility
+  const toggleAllEdges = useCallback(() => {
+    if (edges.length === 0) {
+      // Show all edges
+      setEdges(allEdgesData);
+      setSelectedNodeId("all");
+    } else {
+      // Hide all edges
+      setEdges([]);
+      setSelectedNodeId(null);
+    }
+  }, [edges.length, allEdgesData, setEdges]);
 
   // Memoized controls
   const controls = useMemo(
@@ -299,6 +393,32 @@ const ReactFlowTest = () => {
           +100 Nodes
         </button>
         <button
+          onClick={toggleAllEdges}
+          style={{
+            padding: "5px 10px",
+            background: "#e67e22",
+            color: "white",
+            border: "none",
+            borderRadius: "3px",
+            cursor: "pointer",
+          }}
+        >
+          {edges.length === 0 ? "👁️ Show All Edges" : "🙈 Hide All Edges"}
+        </button>
+        <button
+          onClick={regenerateStructure}
+          style={{
+            padding: "5px 10px",
+            background: "#9b59b6",
+            color: "white",
+            border: "none",
+            borderRadius: "3px",
+            cursor: "pointer",
+          }}
+        >
+          🔄 Regenerate Structure
+        </button>
+        <button
           onClick={clearAllNodes}
           style={{
             padding: "5px 10px",
@@ -309,11 +429,17 @@ const ReactFlowTest = () => {
             cursor: "pointer",
           }}
         >
-          Reset
+          Reset to 40 Nodes
         </button>
       </div>
     ),
-    [addRandomNodes, clearAllNodes]
+    [
+      addRandomNodes,
+      clearAllNodes,
+      regenerateStructure,
+      toggleAllEdges,
+      edges.length,
+    ]
   );
 
   return (
@@ -323,6 +449,8 @@ const ReactFlowTest = () => {
         edgeCount={edges.length}
         renderTime={performanceMetrics.renderTime}
         fps={performanceMetrics.fps}
+        selectedNodeId={selectedNodeId}
+        totalEdges={allEdgesData.length}
       />
       {controls}
       <ReactFlow
@@ -331,6 +459,7 @@ const ReactFlowTest = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
         fitView
         nodeTypes={nodeTypes}
         // Performance optimizations
